@@ -6,6 +6,8 @@ AW.DB_VERSION = 1
 
 BINDING_HEADER_ACTIONWHEELS = "ActionWheels"
 _G["BINDING_NAME_CLICK ActionWheelsToggle:LeftButton"] = "Action wheel (open / hold)"
+_G["BINDING_NAME_CLICK ActionWheelsNext:LeftButton"] = "Next wheel (while open)"
+_G["BINDING_NAME_CLICK ActionWheelsPrev:LeftButton"] = "Previous wheel (while open)"
 
 function AW.Print(msg)
 	if DEFAULT_CHAT_FRAME then
@@ -69,6 +71,44 @@ function AW.ResetProfile()
 end
 
 ---------------------------------------------------------------------------
+-- Wheel management
+---------------------------------------------------------------------------
+-- Find a wheel id by id, 1-based position, or (case-insensitive) name.
+function AW.FindWheel(p, key)
+	key = key or ""
+	if p.wheels[key] then return key end
+	local n = tonumber(key)
+	if n and p.order[n] then return p.order[n] end
+	local lower = string.lower(key)
+	for _, id in ipairs(p.order) do
+		if string.lower(p.wheels[id].name) == lower then return id end
+	end
+end
+
+function AW.NewWheel(p, name)
+	if #p.order >= AW.MAXWHEELS then return nil, "At most " .. AW.MAXWHEELS .. " wheels." end
+	local n = #p.order + 1
+	local id = "w" .. n
+	while p.wheels[id] do n = n + 1; id = "w" .. n end
+	p.wheels[id] = { name = (name ~= "" and name) or ("Wheel " .. (#p.order + 1)), slots = 8, items = {} }
+	p.order[#p.order + 1] = id
+	return id
+end
+
+function AW.DeleteWheel(p, id)
+	if #p.order <= 1 then return false, "You need at least one wheel." end
+	p.wheels[id] = nil
+	for i, v in ipairs(p.order) do if v == id then table.remove(p.order, i) break end end
+	for _, w in pairs(p.wheels) do -- sub-wheel slots pointing at it become empty
+		for i, slot in pairs(w.items) do
+			if slot.type == "wheel" and slot.wheel == id then w.items[i] = nil end
+		end
+	end
+	if p.current == id then p.current = p.order[1] end
+	return true
+end
+
+---------------------------------------------------------------------------
 -- Events
 ---------------------------------------------------------------------------
 local frame = CreateFrame("Frame")
@@ -99,6 +139,8 @@ local HELP = {
 	"/aw set <slot> item <name>    - e.g. /aw set 2 item Hearthstone",
 	"/aw set <slot> macro <text>   - e.g. /aw set 3 macro /cast Hunter's Mark",
 	"/aw set <slot> pet <command>  - attack, follow, stay, passive, defensive, aggressive, assist",
+	"/aw set <slot> wheel <name or number>  - a slot that opens another wheel",
+	"/aw wheels   /aw wheel new|select|rename|delete   (wheels you page through with the hub arrows)",
 	"/aw clear <slot>   /aw list   /aw slots <4-12>",
 	"/aw mode toggle|hold   /aw at cursor|center   /aw scale <0.5-2>",
 	"/aw reset   (restore the starter wheel)",
@@ -126,6 +168,12 @@ function AW.Slash(msg)
 		end
 		local slot, err = AW.MakeSlot(string.lower(kind), arg)
 		if not slot then return AW.Print(err) end
+		if slot.type == "wheel" then
+			local id = AW.FindWheel(p, slot.wheel)
+			if not id then return AW.Print("No wheel '" .. slot.wheel .. "'. See /aw wheels.") end
+			if id == p.current then return AW.Print("A wheel can't open itself.") end
+			slot.wheel = id
+		end
 		def.items[idx] = slot
 		local held = AW.InCombat() and " (it will apply when combat ends)" or ""
 		return done(true, "slot " .. idx .. " = " .. AW.DescribeSlot(slot) .. held)
@@ -156,6 +204,34 @@ function AW.Slash(msg)
 		if not s then return AW.Print("Usage: /aw scale <0.5-2>") end
 		p.settings.scale = math.max(0.5, math.min(2, s))
 		return done(true, "scale " .. p.settings.scale)
+	elseif cmd == "wheels" then
+		for i, id in ipairs(p.order) do
+			AW.Print(i .. ": " .. p.wheels[id].name .. (id == p.current and "  <- editing / opens first" or ""))
+		end
+	elseif cmd == "wheel" then
+		local sub, arg = string.match(rest, "^(%S*)%s*(.-)$")
+		sub = string.lower(sub or "")
+		if sub == "new" then
+			local id, err = AW.NewWheel(p, arg)
+			if not id then return AW.Print(err) end
+			p.current = id
+			return done(true, "created '" .. p.wheels[id].name .. "' and selected it")
+		elseif sub == "select" then
+			local id = AW.FindWheel(p, arg)
+			if not id then return AW.Print("No wheel '" .. arg .. "'. See /aw wheels.") end
+			p.current = id
+			return done(true, "now editing '" .. p.wheels[id].name .. "'; it opens first")
+		elseif sub == "rename" then
+			if arg == "" then return AW.Print("Usage: /aw wheel rename <name>") end
+			def.name = arg
+			return done(true, "renamed to '" .. arg .. "'")
+		elseif sub == "delete" then
+			local gone = def.name
+			local ok, err = AW.DeleteWheel(p, p.current)
+			if not ok then return AW.Print(err) end
+			return done(true, "deleted '" .. gone .. "'")
+		end
+		AW.Print("Usage: /aw wheel new <name> | select <name or number> | rename <name> | delete")
 	elseif cmd == "reset" then
 		AW.ResetProfile()
 		return done(true, "starter wheel restored")

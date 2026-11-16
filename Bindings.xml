@@ -2,4 +2,8 @@
 	<!-- The toggle button is a secure click handler, so the wheel opens and closes in combat. -->
 	<Binding name="CLICK ActionWheelsToggle:LeftButton" header="ACTIONWHEELS" category="ADDONS">
 	</Binding>
+	<Binding name="CLICK ActionWheelsNext:LeftButton" category="ADDONS">
+	</Binding>
+	<Binding name="CLICK ActionWheelsPrev:LeftButton" category="ADDONS">
+	</Binding>
 </Bindings>

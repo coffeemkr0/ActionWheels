@@ -3,6 +3,7 @@ ActionWheels = ActionWheels or {}
 local AW = ActionWheels
 
 AW.MINSLOTS, AW.MAXSLOTS = 4, 12
+AW.MAXWHEELS = 8 -- one pre-built secure page per wheel
 
 -- pet command -> macro line, and the icon the game's own pet bar uses for it
 AW.PET_COMMANDS = {
@@ -31,15 +32,19 @@ function AW.MakeSlot(kind, arg)
 	elseif kind == "macro" then
 		if arg == "" then return nil, "Give the macro text, e.g. /cast Hunter's Mark" end
 		return { type = "macro", macrotext = arg }
+	elseif kind == "wheel" then
+		if arg == "" then return nil, "Give a wheel name or number." end
+		return { type = "wheel", wheel = arg } -- Core resolves this to a wheel id
 	elseif kind == "pet" then
 		local c = string.lower(arg)
 		if not AW.PET_COMMANDS[c] then return nil, "Pet command must be: attack, follow, stay, passive, defensive, aggressive or assist." end
 		return { type = "pet", pet = c }
 	end
-	return nil, "Slot type must be spell, item, macro or pet."
+	return nil, "Slot type must be spell, item, macro, pet or wheel."
 end
 
 -- The secure-button attributes for a slot ({} for an empty or unknown slot).
+-- Wheel slots have none: the layout gives them a "subwheel" attribute that the click snippet uses.
 function AW.SlotAttributes(slot)
 	if AW.IsEmpty(slot) then return {} end
 	if slot.type == "spell" and slot.spell then
@@ -59,6 +64,10 @@ function AW.DescribeSlot(slot)
 	if AW.IsEmpty(slot) then return "(empty)" end
 	if slot.label and slot.label ~= "" then return slot.label end
 	if slot.type == "pet" then return "Pet: " .. tostring(slot.pet) end
+	if slot.type == "wheel" then
+		local w = ActionWheelsDB and ActionWheelsDB.profile and ActionWheelsDB.profile.wheels[slot.wheel]
+		return "Wheel: " .. (w and w.name or tostring(slot.wheel))
+	end
 	return tostring(slot[slot.type] or slot.type)
 end
 
@@ -68,6 +77,7 @@ function AW.SlotIcon(slot)
 	if AW.IsEmpty(slot) then return nil end
 	if slot.icon and slot.icon ~= "" then return slot.icon end
 	if slot.type == "pet" and AW.PET_COMMANDS[slot.pet] then return AW.PET_COMMANDS[slot.pet][2] end
+	if slot.type == "wheel" then return "Interface\\Icons\\INV_Misc_Map_01" end
 	local tex
 	if slot.type == "spell" then
 		if C_Spell and C_Spell.GetSpellTexture then tex = C_Spell.GetSpellTexture(slot.spell)
