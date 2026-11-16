@@ -132,12 +132,15 @@ local function BuildSlice(page, i)
 				": type=" .. tostring(self:GetAttribute("type")) .. " spell=" .. tostring(self:GetAttribute("spell")))
 		end
 	end)
-	-- Runs on the release only (down is false). pre: a sub-wheel slice switches page;
-	-- post: any other slice closes the wheel after the action ran.
+	-- pre (sees the click's own arguments): remember whether this is the press or the release, and
+	-- let a sub-wheel slice switch page on the release.
+	-- post (does NOT get the same arguments, so it must not read `down`): after the release, any
+	-- slice that isn't a sub-wheel link closes the wheel once its action has run.
 	SecureHandlerWrapScript(b, "OnClick", root,
-		[[ if down then return end
+		[[ owner:SetAttribute("clickdown", down and 1 or 0)
+		   if down then return end
 		   local t = self:GetAttribute("subwheel"); if t then owner:RunAttribute("gopage", t, true) end ]],
-		[[ if down then return end
+		[[ if owner:GetAttribute("clickdown") == 1 then return end
 		   if not self:GetAttribute("subwheel") then owner:Hide() end ]])
 	return b
 end

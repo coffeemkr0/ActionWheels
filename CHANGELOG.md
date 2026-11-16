@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2
+- **Fix: the wheel now closes after a slice is clicked.** The close step read the click's press/release state in a place where it isn't available, so it never ran.
+
 ## 0.3.1
 - **Fix: clicking a slice did nothing and left the wheel open.** Slices only listened for the mouse release, and newer clients ignore that when "cast on key press" is on. They now listen for both and act on the release, so the setting doesn't matter.
 - `/aw debug` prints what a slice received when you click it.
