@@ -69,7 +69,26 @@ local function itemCount(name)
 	if GetItemCount then return GetItemCount(name) end
 end
 
--- Returns { cdStart, cdDur, count, usable, noMana, inRange }; any field may be nil.
+-- Is the player carrying a buff with this name? (Aspects, stances-as-auras, self buffs.)
+local function hasBuff(name)
+	if C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName then
+		return C_UnitAuras.GetAuraDataBySpellName("player", name, "HELPFUL") ~= nil
+	end
+	if AuraUtil and AuraUtil.FindAuraByName then
+		return AuraUtil.FindAuraByName(name, "player", "HELPFUL") ~= nil
+	end
+	if UnitAura then
+		for i = 1, 40 do
+			local n = UnitAura("player", i, "HELPFUL")
+			if not n then return false end
+			if n == name then return true end
+		end
+	end
+	return false
+end
+AW.HasBuff = hasBuff
+
+-- Returns { cdStart, cdDur, count, usable, noMana, inRange, active }; any field may be nil.
 function AW.SlotState(slot)
 	local st = {}
 	if AW.IsEmpty(slot) then return st end
@@ -84,6 +103,7 @@ function AW.SlotState(slot)
 		local usable, noMana = spellUsable(name)
 		st.usable, st.noMana = usable and true or false, noMana and true or false
 		st.inRange = spellRange(name)
+		st.active = hasBuff(name) -- e.g. the Aspect you are in
 	elseif slot.type == "item" and slot.item then
 		local name = slot.item
 		st.cdStart, st.cdDur = itemCooldown(itemId(name))

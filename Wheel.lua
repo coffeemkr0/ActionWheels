@@ -103,6 +103,11 @@ local function BuildSlice(page, i)
 	b.ring:SetAllPoints(b)
 	b.ring:SetTexture(TEX .. "Ring")
 	b.ring:SetVertexColor(0.4, 0.45, 0.55, 1)
+	b.glow = b:CreateTexture(nil, "ARTWORK", nil, 2)
+	b.glow:SetAllPoints(b)
+	b.glow:SetTexture(TEX .. "Circle")
+	b.glow:SetVertexColor(0.3, 1, 0.45, 0.28)
+	b.glow:Hide()
 	b.hl = b:CreateTexture(nil, "OVERLAY")
 	b.hl:SetAllPoints(b)
 	b.hl:SetTexture(TEX .. "Circle")
@@ -276,6 +281,14 @@ local function Paint(b, slot)
 	else
 		b.count:SetText("")
 	end
+	-- buff on you (the active Aspect, etc.): bright green ring and a soft glow
+	if st.active then
+		b.ring:SetVertexColor(0.3, 1, 0.45, 1)
+		b.glow:Show()
+	else
+		b.ring:SetVertexColor(0.4, 0.45, 0.55, 1)
+		b.glow:Hide()
+	end
 	local r, g, bl, desat = AW.StateTint(st)
 	b.icon:SetVertexColor(r, g, bl)
 	if b.icon.SetDesaturated then b.icon:SetDesaturated(desat) end
@@ -325,6 +338,8 @@ local function LayoutPage(page, id, k, count, targets)
 		for _, key in ipairs(AW.ATTR_KEYS) do b:SetAttribute(key, nil) end
 		b:SetAttribute("subwheel", nil)
 		b.cdStart, b.cdDur = nil, nil
+		b.glow:Hide()
+		b.ring:SetVertexColor(0.4, 0.45, 0.55, 1)
 		b.cd:SetCooldown(0, 0)
 		b.count:SetText("")
 		if i <= n then

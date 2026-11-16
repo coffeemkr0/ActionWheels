@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.0
+- **Active buffs are highlighted.** A spell slice whose buff is on you (for example your current Hunter Aspect) gets a bright green ring and a soft glow while the wheel is open.
+
 ## 0.3.3
 - The wheel now also closes from plain Lua after a click when you are out of combat (the secure close step did not work in testing). In combat it still relies on the secure step; `/aw debug` now shows whether that step ran.
 

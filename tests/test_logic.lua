@@ -162,6 +162,19 @@ eq(m.count, 1, "modern charges"); eq(m.cdStart, nil, "modern: charge left, no sw
 C_Spell = nil
 eq(next(AW.SlotState({ type = "macro", macrotext = "/x" })), nil, "macros have no live state")
 
+-- active buffs (e.g. the current Aspect)
+UnitAura = function(_, i) return ({ "Aspect of the Hawk", "Mark of the Wild" })[i] end
+eq(AW.SlotState({ type = "spell", spell = "Aspect of the Hawk" }).active, true, "active buff found (UnitAura)")
+eq(AW.SlotState({ type = "spell", spell = "Aspect of the Monkey" }).active, false, "inactive buff")
+UnitAura = nil
+AuraUtil = { FindAuraByName = function(n) if n == "A" then return "A" end end }
+eq(AW.SlotState({ type = "spell", spell = "A" }).active, true, "active buff found (AuraUtil)")
+AuraUtil = nil
+C_UnitAuras = { GetAuraDataBySpellName = function(_, n) if n == "B" then return {} end end }
+eq(AW.SlotState({ type = "spell", spell = "B" }).active, true, "active buff found (C_UnitAuras)")
+eq(AW.SlotState({ type = "spell", spell = "C" }).active, false, "inactive buff (C_UnitAuras)")
+C_UnitAuras = nil
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
