@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+- **Fix: clicking a slice did nothing and left the wheel open.** Slices only listened for the mouse release, and newer clients ignore that when "cast on key press" is on. They now listen for both and act on the release, so the setting doesn't matter.
+- `/aw debug` prints what a slice received when you click it.
+
 ## 0.3.0 (milestones 3 and 4)
 - **Editor window** (`/aw` or the minimap button): a preview ring you can drop onto, a slot form (type, value, label, icon), wheel picker with New / Delete / rename / slot count. Locked in combat.
 - **Drag and drop** spells, items, macros and pet bar buttons onto a slot, in the editor or on the open wheel.

@@ -82,7 +82,12 @@ end
 local function BuildSlice(page, i)
 	local b = CreateFrame("Button", "ActionWheelsP" .. page.k .. "S" .. i, page, "SecureActionButtonTemplate")
 	b:SetFrameLevel(page:GetFrameLevel() + 2)
-	b:RegisterForClicks("LeftButtonUp") -- right-click is reserved for editing (not a secure action)
+	-- Newer clients only run a secure action on the click event (down or up) that matches the
+	-- "cast on key press" setting, so a button registered for one direction can silently do
+	-- nothing. Register both and pin the action to the release so the setting doesn't matter.
+	-- Left only: right-click is reserved for editing (not a secure action).
+	b:RegisterForClicks("LeftButtonDown", "LeftButtonUp")
+	b:SetAttribute("useOnKeyDown", false)
 	b.index, b.page = i, page
 	b.bg = b:CreateTexture(nil, "BACKGROUND")
 	b.bg:SetAllPoints(b)
@@ -93,6 +98,7 @@ local function BuildSlice(page, i)
 	b.icon:Hide()
 	b.cd = CreateFrame("Cooldown", nil, b, "CooldownFrameTemplate")
 	b.cd:SetPoint("CENTER", b, "CENTER", 0, 0)
+	b.cd:EnableMouse(false) -- never let the swirl swallow the click
 	b.ring = b:CreateTexture(nil, "BORDER")
 	b.ring:SetAllPoints(b)
 	b.ring:SetTexture(TEX .. "Ring")
@@ -120,10 +126,19 @@ local function BuildSlice(page, i)
 	b:HookScript("OnReceiveDrag", function(self)
 		AW.DropOnSlot(self.page.wheelId, self.index)
 	end)
-	-- pre: a sub-wheel slice switches page; post: any other slice closes the wheel after it ran.
+	b:HookScript("OnClick", function(self, button, down)
+		if AW.debug then
+			AW.Print("slice " .. self.index .. " " .. tostring(button) .. (down and " down" or " up") ..
+				": type=" .. tostring(self:GetAttribute("type")) .. " spell=" .. tostring(self:GetAttribute("spell")))
+		end
+	end)
+	-- Runs on the release only (down is false). pre: a sub-wheel slice switches page;
+	-- post: any other slice closes the wheel after the action ran.
 	SecureHandlerWrapScript(b, "OnClick", root,
-		[[ local t = self:GetAttribute("subwheel"); if t then owner:RunAttribute("gopage", t, true) end ]],
-		[[ if not self:GetAttribute("subwheel") then owner:Hide() end ]])
+		[[ if down then return end
+		   local t = self:GetAttribute("subwheel"); if t then owner:RunAttribute("gopage", t, true) end ]],
+		[[ if down then return end
+		   if not self:GetAttribute("subwheel") then owner:Hide() end ]])
 	return b
 end
 

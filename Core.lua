@@ -324,6 +324,9 @@ function AW.Slash(msg)
 		ActionWheelsDB.minimap.hide = not ActionWheelsDB.minimap.hide
 		if AW.UpdateMinimap then AW.UpdateMinimap() end
 		return AW.Print("minimap button " .. (ActionWheelsDB.minimap.hide and "hidden" or "shown"))
+	elseif cmd == "debug" then
+		AW.debug = not AW.debug
+		return AW.Print("debug " .. (AW.debug and "on: clicking a slice prints what it received" or "off"))
 	elseif cmd == "keys" then
 		AW.OpenKeyBindings()
 	elseif cmd == "" or cmd == "config" then
