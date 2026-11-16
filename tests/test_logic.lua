@@ -1,6 +1,6 @@
 -- Run via tests/run_tests.py (Lua 5.1 through lupa). Run from the repo root.
 dofile("tests/wow_stubs.lua")
-for _, f in ipairs({ "Core", "Slots", "State", "Defaults", "Wheel" }) do
+for _, f in ipairs({ "Core", "Slots", "State", "Defaults", "Wheel", "Share", "Minimap", "Config" }) do
 	assert(loadfile(f .. ".lua"), f)()
 end
 local AW = ActionWheels
@@ -168,6 +168,129 @@ AW.Slash("set 1 spell Aimed Shot")
 _G.ActionWheelsPage1:Show()
 AW.RefreshStates()
 eq(_G.ActionWheelsP1S1.cdStart, 100, "refresh painted the cooldown on the shown page")
+
+
+-- ===== milestone 3 / 4 =====
+AW.Slash("reset")
+
+-- dragging from the game
+GetCursorInfo = function() return "spell", 3, "spell", 19434 end
+GetSpellInfo = function(id) return id == 19434 and "Aimed Shot" or nil end
+eq(AW.SlotFromCursor().spell, "Aimed Shot", "drag a spell (classic shape)")
+C_Spell = { GetSpellName = function(id) return "Arcane Shot" end }
+eq(AW.SlotFromCursor().spell, "Arcane Shot", "drag a spell (modern name lookup)")
+C_Spell = nil
+GetCursorInfo = function() return "spell", 19434, nil, nil end
+eq(AW.SlotFromCursor().spell, "Aimed Shot", "drag a spell given only its id")
+GetCursorInfo = function() return "item", 6948, "|cffffffff|Hitem:6948|h[Hearthstone]|h|r" end
+GetItemInfo = function() return nil end
+eq(AW.SlotFromCursor().item, "Hearthstone", "drag an item (name from the link)")
+GetItemInfo = function(id) return "Hearth" end
+eq(AW.SlotFromCursor().item, "Hearth", "drag an item (name from the cache)")
+GetCursorInfo = function() return "macro", 1 end
+GetMacroInfo = function() return "Mark", 132212, "/cast Hunter's Mark\n/petattack" end
+local ms = AW.SlotFromCursor()
+eq(ms.type, "macro", "drag a macro"); eq(ms.label, "Mark", "macro keeps its name"); eq(ms.icon, 132212, "macro keeps its icon")
+GetCursorInfo = function() return "petaction", 1 end
+GetPetActionInfo = function() return "PET_ACTION_ATTACK" end
+eq(AW.SlotFromCursor().pet, "attack", "drag the pet attack button")
+GetPetActionInfo = function() return "Growl", nil, false, nil, nil, nil, 2649 end
+GetSpellInfo = function(id) return id == 2649 and "Growl" or nil end
+eq(AW.SlotFromCursor().macrotext, "/cast Growl", "drag a pet ability")
+GetCursorInfo = function() return nil end
+eq(AW.SlotFromCursor(), nil, "empty cursor")
+
+GetCursorInfo = function() return "spell", 3, "spell", 19434 end
+GetSpellInfo = function(id) return "Aimed Shot" end
+local cleared = _CLEARED
+eq(AW.DropOnSlot("main", 2), true, "drop onto a slot")
+eq(AW.P().wheels.main.items[2].spell, "Aimed Shot", "dropped spell stored")
+eq(_G.ActionWheelsP1S2:GetAttribute("spell"), "Aimed Shot", "dropped spell reaches the secure button")
+eq(_CLEARED, cleared + 1, "cursor cleared after the drop")
+_COMBAT = true
+eq(AW.DropOnSlot("main", 3), false, "no drops in combat")
+_COMBAT = false
+GetCursorInfo = function() return nil end
+
+-- auto-open conditions
+eq(AW.ValidCondition("[mounted]"), true, "simple condition")
+eq(AW.ValidCondition("[stance:1,combat]"), true, "condition with args")
+eq(AW.ValidCondition("[mounted][swimming]"), true, "alternatives")
+eq(AW.ValidCondition("mounted"), false, "needs brackets")
+eq(AW.ValidCondition("[mounted] page9"), false, "no trailing text")
+eq(AW.ValidCondition("[a;b]"), false, "no semicolons")
+eq(AW.ValidCondition(""), false, "empty")
+AW.Slash("wheel new Mount")
+AW.Slash("wheel auto [mounted]")
+eq(AW.P().wheels.w2.auto, "[mounted]", "auto stored")
+AW.Slash("wheel select 1")
+eq(_STATEDRV.autopage, "[mounted] page2; page1", "state driver registered with the default last")
+AW.Slash("wheel select 2")
+eq(_STATEDRV.autopage, "[mounted] page2; page2", "default follows the selected wheel")
+AW.Slash("wheel auto [bad;x]")
+eq(AW.P().wheels.w2.auto, "[mounted]", "invalid condition rejected")
+AW.Slash("wheel auto off")
+eq(_STATEDRV.autopage, nil, "driver removed when no wheel has a condition")
+
+-- share: round trip and sanitising
+AW.Slash("wheel select 1")
+AW.Slash("set 3 macro /cast Hunter's Mark")
+AW.P().wheels.main.items[4] = { type = "macro", macrotext = "/a\n/b", icon = "Ability_Hunter_Pet_Wolf", label = "Two" }
+AW.Slash("set 8 wheel 2")
+local str = AW.ExportWheels({ "main" })
+eq(string.sub(str, 1, 4), "AW1:", "export prefix")
+local pre = AW.PreviewImport(str)
+eq(pre.wheels[1].items[1].pet, "attack", "round trip keeps pet slots")
+eq(pre.wheels[1].items[8], nil, "wheel links are not exported")
+eq(#pre.macros, 2, "macros listed for the confirmation")
+eq(pre.wheels[1].items[4].macrotext, "/a\n/b", "macro newlines survive")
+eq(pre.wheels[1].items[4].icon, "Interface\\Icons\\Ability_Hunter_Pet_Wolf", "plain icon names are expanded")
+local before = #AW.P().order
+local ids = AW.CommitImport(pre)
+eq(#ids, 1, "import adds a wheel"); eq(#AW.P().order, before + 1, "wheel count grows")
+eq(AW.PreviewImport("garbage"), nil, "garbage rejected")
+eq(AW.PreviewImport("AW1:{s00;"), nil, "truncated rejected")
+local hostile = AW.Serialize({ v = 1, wheels = { { name = "x\1bad", slots = 99, auto = "[a;b]", items = {
+	{ type = "wheel", wheel = "w1" }, { type = "spell", spell = "A\1B", icon = "..\\..\\x" }, { type = "pet", pet = "dance" },
+	{ type = "os", os = "execute" }, { type = "macro", macrotext = string.rep("x", 300) } } } } })
+local h = AW.PreviewImport(hostile).wheels[1]
+eq(h.slots, 12, "hostile slots clamped"); eq(h.auto, nil, "hostile auto dropped")
+eq(h.items[1], nil, "wheel link dropped"); eq(h.items[2].spell, "AB", "control chars stripped")
+eq(h.items[2].icon, nil, "path-traversal icon dropped"); eq(h.items[3], nil, "bad pet dropped")
+eq(h.items[4], nil, "unknown type dropped"); eq(#h.items[5].macrotext, 255, "macro length capped")
+for _ = 1, 12 do AW.Slash("wheel new Fill") end
+eq(#AW.CommitImport(pre), 0, "import stops at the wheel limit")
+
+-- per-character wheels
+AW.Slash("reset")
+eq(AW.UsingCharProfile(), false, "account profile by default")
+AW.Slash("set 1 spell Account Spell")
+AW.SetCharProfile(true)
+eq(AW.UsingCharProfile(), true, "character profile on")
+eq(AW.P().wheels.main.items[1].spell, "Account Spell", "character copy starts from the account wheels")
+AW.Slash("set 1 spell Char Spell")
+eq(ActionWheelsDB.profile.wheels.main.items[1].spell, "Account Spell", "account wheels untouched")
+AW.SetCharProfile(false)
+eq(AW.P().wheels.main.items[1].spell, "Account Spell", "switching back restores the account wheels")
+AW.SetCharProfile(true)
+eq(AW.P().wheels.main.items[1].spell, "Char Spell", "character wheels are kept")
+AW.SetCharProfile(false)
+
+-- windows build and behave with the stubs
+AW.ShowConfig()
+eq(AW.ConfigShown(), true, "settings window opens")
+AW.RefreshConfig()
+AW.OnEvent(nil, "PLAYER_REGEN_DISABLED")
+eq(AW.ConfigShown(), false, "settings window closes when combat starts")
+_COMBAT = true
+AW.ShowConfig()
+eq(AW.ConfigShown(), false, "settings window refuses to open in combat")
+_COMBAT = false
+AW.Slash("minimap")
+eq(ActionWheelsDB.minimap.hide, true, "minimap toggled off")
+AW.Slash("minimap")
+AW.Slash("")
+eq(AW.ConfigShown(), true, "/aw opens the settings window")
 
 -- sanitize fills defaults and clamps slot counts
 ActionWheelsDB = { profile = { wheels = { main = { name = "M", slots = 99, items = {} } }, order = { "main" }, current = "gone", settings = {} } }

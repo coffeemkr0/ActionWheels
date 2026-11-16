@@ -47,7 +47,25 @@ function AW.NewProfile()
 	return { wheels = wheels, order = order, current = order[1], settings = AW.Copy(AW.DEFAULT_SETTINGS) }
 end
 
-function AW.P() return ActionWheelsDB.profile end
+-- Account-wide by default; a character can switch to its own copy (ActionWheelsCharDB).
+function AW.P()
+	if ActionWheelsCharDB and ActionWheelsCharDB.useChar and ActionWheelsCharDB.profile then
+		return ActionWheelsCharDB.profile
+	end
+	return ActionWheelsDB.profile
+end
+
+function AW.UsingCharProfile()
+	return ActionWheelsCharDB and ActionWheelsCharDB.useChar and ActionWheelsCharDB.profile and true or false
+end
+
+function AW.SetCharProfile(on)
+	ActionWheelsCharDB = ActionWheelsCharDB or {}
+	if on and not ActionWheelsCharDB.profile then
+		ActionWheelsCharDB.profile = AW.Copy(ActionWheelsDB.profile) -- start from the account wheels
+	end
+	ActionWheelsCharDB.useChar = on and true or false
+end
 
 local function Sanitize(p)
 	fill(p.settings, AW.DEFAULT_SETTINGS)
@@ -62,12 +80,60 @@ function AW.InitDB()
 	ActionWheelsDB = ActionWheelsDB or {}
 	if not ActionWheelsDB.profile then ActionWheelsDB.profile = AW.NewProfile() end
 	ActionWheelsDB.version = AW.DB_VERSION
+	ActionWheelsDB.minimap = ActionWheelsDB.minimap or {}
+	fill(ActionWheelsDB.minimap, { hide = false, angle = 215 })
 	Sanitize(ActionWheelsDB.profile)
+	ActionWheelsCharDB = ActionWheelsCharDB or {}
+	if ActionWheelsCharDB.profile then Sanitize(ActionWheelsCharDB.profile) end
 end
 
 function AW.ResetProfile()
-	ActionWheelsDB.profile = AW.NewProfile()
-	Sanitize(ActionWheelsDB.profile)
+	local fresh = AW.NewProfile()
+	if AW.UsingCharProfile() then ActionWheelsCharDB.profile = fresh else ActionWheelsDB.profile = fresh end
+	Sanitize(fresh)
+end
+
+---------------------------------------------------------------------------
+-- Dropping a spell / item / macro from the cursor onto a slot
+---------------------------------------------------------------------------
+function AW.DropOnSlot(wheelId, idx)
+	if AW.InCombat() then AW.Print("Slots can't be changed during combat.") return false end
+	local slot, why = AW.SlotFromCursor()
+	if not slot then if why then AW.Print(why) end return false end
+	local def = AW.P().wheels[wheelId]
+	if not def or idx < 1 or idx > def.slots then return false end
+	def.items[idx] = slot
+	if ClearCursor then ClearCursor() end
+	AW.ApplyLayout()
+	if AW.RefreshConfig then AW.RefreshConfig() end
+	AW.Print("slot " .. idx .. " = " .. AW.DescribeSlot(slot))
+	return true
+end
+
+---------------------------------------------------------------------------
+-- Key bindings and the settings window
+---------------------------------------------------------------------------
+function AW.OpenKeyBindings()
+	if AW.HideConfig then AW.HideConfig() end -- our window would sit on top of it
+	local function try(fn) return (pcall(fn)) end
+	if Settings and Settings.OpenToCategory and Settings.KEYBINDINGS_CATEGORY_ID then
+		if try(function() Settings.OpenToCategory(Settings.KEYBINDINGS_CATEGORY_ID) end) then return "settings" end
+	end
+	if KeyBindingFrame or KeyBindingFrame_LoadUI then
+		local ok = try(function()
+			if KeyBindingFrame_LoadUI then KeyBindingFrame_LoadUI() end
+			ShowUIPanel(KeyBindingFrame)
+		end)
+		if ok and KeyBindingFrame then return "frame" end
+	end
+	if GameMenuButtonKeybindings and GameMenuButtonKeybindings.Click then
+		if try(function() GameMenuButtonKeybindings:Click() end) then return "menu" end
+	end
+	AW.Print("Press Esc > Options > Key Bindings > AddOns > ActionWheels.")
+end
+
+function AW.OpenConfig()
+	if AW.ShowConfig then AW.ShowConfig() end
 end
 
 ---------------------------------------------------------------------------
@@ -116,6 +182,7 @@ AW.eventFrame = frame
 frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+frame:RegisterEvent("PLAYER_REGEN_DISABLED")
 
 AW.OnEvent = function(_, event, a1)
 	if event == "ADDON_LOADED" then
@@ -124,6 +191,15 @@ AW.OnEvent = function(_, event, a1)
 		if not (ActionWheelsDB and ActionWheelsDB.profile) then AW.InitDB() end
 		AW.BuildWheel()
 		AW.ApplyLayout()
+		if AW.UpdateMinimap then AW.UpdateMinimap() end
+		if not ActionWheelsDB.welcomed then
+			ActionWheelsDB.welcomed = true -- never nag twice
+			if GetBindingKey and not GetBindingKey("CLICK ActionWheelsToggle:LeftButton") then
+				AW.Print("Welcome! Bind a key under Esc > Key Bindings > AddOns > ActionWheels, then type /aw to set up your wheel.")
+			end
+		end
+	elseif event == "PLAYER_REGEN_DISABLED" then
+		if AW.HideConfig then AW.HideConfig() end -- editing is locked in combat
 	elseif event == "PLAYER_REGEN_ENABLED" then
 		-- changes made during combat were held back; apply them now
 		if AW.pendingApply then AW.ApplyLayout() end
@@ -143,7 +219,9 @@ local HELP = {
 	"/aw wheels   /aw wheel new|select|rename|delete   (wheels you page through with the hub arrows)",
 	"/aw clear <slot>   /aw list   /aw slots <4-12>",
 	"/aw mode toggle|hold   /aw at cursor|center   /aw scale <0.5-2>",
-	"/aw reset   (restore the starter wheel)",
+	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
+	"/aw minimap   /aw keys   /aw reset   (restore the starter wheel)",
+	"/aw (no arguments) opens the settings window",
 }
 
 local function parse(msg)
@@ -225,13 +303,31 @@ function AW.Slash(msg)
 			if arg == "" then return AW.Print("Usage: /aw wheel rename <name>") end
 			def.name = arg
 			return done(true, "renamed to '" .. arg .. "'")
+		elseif sub == "auto" then
+			if arg == "" or string.lower(arg) == "off" then
+				def.auto = nil
+				return done(true, "'" .. def.name .. "' no longer opens automatically")
+			end
+			if not AW.ValidCondition(arg) then
+				return AW.Print("Use macro conditions in brackets, e.g. /aw wheel auto [mounted]  or  [stance:1,combat]")
+			end
+			def.auto = arg
+			return done(true, "'" .. def.name .. "' opens first when " .. arg)
 		elseif sub == "delete" then
 			local gone = def.name
 			local ok, err = AW.DeleteWheel(p, p.current)
 			if not ok then return AW.Print(err) end
 			return done(true, "deleted '" .. gone .. "'")
 		end
-		AW.Print("Usage: /aw wheel new <name> | select <name or number> | rename <name> | delete")
+		AW.Print("Usage: /aw wheel new <name> | select <name or number> | rename <name> | auto <[condition]|off> | delete")
+	elseif cmd == "minimap" then
+		ActionWheelsDB.minimap.hide = not ActionWheelsDB.minimap.hide
+		if AW.UpdateMinimap then AW.UpdateMinimap() end
+		return AW.Print("minimap button " .. (ActionWheelsDB.minimap.hide and "hidden" or "shown"))
+	elseif cmd == "keys" then
+		AW.OpenKeyBindings()
+	elseif cmd == "" or cmd == "config" then
+		AW.OpenConfig()
 	elseif cmd == "reset" then
 		AW.ResetProfile()
 		return done(true, "starter wheel restored")

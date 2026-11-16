@@ -90,3 +90,76 @@ function AW.SlotIcon(slot)
 	end
 	return tex or QUESTION
 end
+
+---------------------------------------------------------------------------
+-- Dragging things from the game onto a slot
+---------------------------------------------------------------------------
+local PET_TOKENS = {
+	PET_ACTION_ATTACK = "attack", PET_ACTION_FOLLOW = "follow", PET_ACTION_WAIT = "stay",
+	PET_MODE_PASSIVE = "passive", PET_MODE_DEFENSIVE = "defensive", PET_MODE_ASSIST = "assist",
+	PET_MODE_AGGRESSIVE = "aggressive",
+}
+
+local function spellName(id, index, book)
+	if id then
+		if C_Spell and C_Spell.GetSpellName then
+			local n = C_Spell.GetSpellName(id)
+			if n then return n end
+		end
+		if GetSpellInfo then
+			local n = GetSpellInfo(id)
+			if n then return n end
+		end
+	end
+	if index and book then
+		if C_SpellBook and C_SpellBook.GetSpellBookItemName then
+			local n = C_SpellBook.GetSpellBookItemName(index, book)
+			if n then return n end
+		end
+		if GetSpellBookItemName then return (GetSpellBookItemName(index, book)) end
+	end
+end
+
+-- What is on the mouse cursor, as a slot: returns slot, or nil and a reason.
+function AW.SlotFromCursor()
+	if not GetCursorInfo then return nil, "nothing on the cursor" end
+	local kind, a, b, c = GetCursorInfo()
+	if kind == "spell" then
+		local id = (type(c) == "number" and c) or (type(a) == "number" and b == nil and a) or nil
+		local name = spellName(id, a, b)
+		if not name then return nil, "couldn't read that spell" end
+		return { type = "spell", spell = name }
+	elseif kind == "item" then
+		local name
+		if GetItemInfo then name = (GetItemInfo(a)) end
+		if not name and type(b) == "string" then name = string.match(b, "%[(.-)%]") end
+		if not name then return nil, "couldn't read that item (try again in a moment)" end
+		return { type = "item", item = name }
+	elseif kind == "macro" then
+		local name, icon, body = GetMacroInfo(a)
+		if not body then return nil, "couldn't read that macro" end
+		return { type = "macro", macrotext = body, label = name, icon = icon }
+	elseif kind == "petaction" then
+		local name, _, isToken, _, _, _, spellId
+		if GetPetActionInfo then name, _, isToken, _, _, _, spellId = GetPetActionInfo(a) end
+		if name and PET_TOKENS[name] then return { type = "pet", pet = PET_TOKENS[name] } end
+		local sname = spellName(spellId)
+		if sname then return { type = "macro", macrotext = "/cast " .. sname, label = sname } end
+		return nil, "couldn't read that pet action"
+	end
+	return nil, "drag a spell, item or macro onto a slot"
+end
+
+-- Macro-conditional text that decides when a wheel opens first, e.g. [mounted] or [stance:1,combat].
+function AW.ValidCondition(cond)
+	if type(cond) ~= "string" then return false end
+	cond = string.gsub(cond, "^%s+", "")
+	cond = string.gsub(cond, "%s+$", "")
+	if cond == "" or string.len(cond) > 120 then return false end
+	while cond ~= "" do
+		local g, rest = string.match(cond, "^(%b[])(.*)$")
+		if not g or not string.find(g, "^%[[%w:,/_ !~%-]+%]$") then return false end
+		cond = rest
+	end
+	return true
+end

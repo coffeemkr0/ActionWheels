@@ -116,6 +116,10 @@ local function BuildSlice(page, i)
 		local def = p.wheels[self.page.wheelId]
 		self.page.name:SetText(def and def.name or "")
 	end)
+	-- dropping a spell / item / macro from the cursor onto an open wheel fills the slice
+	b:HookScript("OnReceiveDrag", function(self)
+		AW.DropOnSlot(self.page.wheelId, self.index)
+	end)
 	-- pre: a sub-wheel slice switches page; post: any other slice closes the wheel after it ran.
 	SecureHandlerWrapScript(b, "OnClick", root,
 		[[ local t = self:GetAttribute("subwheel"); if t then owner:RunAttribute("gopage", t, true) end ]],
@@ -151,13 +155,15 @@ local function BuildPage(k)
 end
 
 local function Build()
-	root = CreateFrame("Frame", "ActionWheelsRoot", UIParent, "SecureHandlerBaseTemplate")
+	root = CreateFrame("Frame", "ActionWheelsRoot", UIParent, "SecureHandlerStateTemplate")
 	root:SetFrameStrata("DIALOG")
 	root:SetWidth(96)
 	root:SetHeight(96)
 	root:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 	root:Hide()
 	root:SetAttribute("gopage", GOPAGE)
+	-- "auto" wheels: a state driver keeps `home` (the page that opens first) in step with the game
+	root:SetAttribute("_onstate-autopage", [[ self:SetAttribute("home", newstate) ]])
 
 	-- click anywhere outside the wheel to close it
 	catcher = CreateFrame("Button", "ActionWheelsCatcher", root, "SecureHandlerClickTemplate")
@@ -361,10 +367,21 @@ function AW.ApplyLayout()
 		if k > count then page.wheelId = nil; page:Hide() end
 	end
 
-	-- the opened wheel is the one being edited
+	-- the wheel being edited opens first, unless an "auto" condition of another wheel holds
 	local home = pageOf[p.current] or pageName(1)
+	local clauses = {}
+	for k, id in ipairs(p.order) do
+		local cond = p.wheels[id].auto
+		if cond and AW.ValidCondition(cond) then clauses[#clauses + 1] = cond .. " " .. pageName(k) end
+	end
 	root:SetAttribute("home", home)
 	root:SetAttribute("cur", home)
+	if #clauses > 0 then
+		clauses[#clauses + 1] = home
+		RegisterStateDriver(root, "autopage", table.concat(clauses, "; "))
+	else
+		UnregisterStateDriver(root, "autopage")
+	end
 	for k, page in pairs(pages) do
 		if k <= count and pageName(k) == home then page:Show() else page:Hide() end
 	end
