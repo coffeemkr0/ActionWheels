@@ -1,0 +1,10 @@
+## Interface: 16001
+## Title: ActionWheels
+## Notes: Radial, customizable action bars. Cast spells, use items, run macros and command your pet from a wheel at your cursor - in combat too.
+## Author: coffeemkr0
+## Version: 0.1.0
+## SavedVariables: ActionWheelsDB
+Core.lua
+Slots.lua
+Defaults.lua
+Wheel.lua
