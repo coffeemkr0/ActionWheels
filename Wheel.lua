@@ -129,7 +129,14 @@ local function BuildSlice(page, i)
 	b:HookScript("OnClick", function(self, button, down)
 		if AW.debug then
 			AW.Print("slice " .. self.index .. " " .. tostring(button) .. (down and " down" or " up") ..
-				": type=" .. tostring(self:GetAttribute("type")) .. " spell=" .. tostring(self:GetAttribute("spell")))
+				": type=" .. tostring(self:GetAttribute("type")) .. " spell=" .. tostring(self:GetAttribute("spell")) ..
+				" | secure close: clickdown=" .. tostring(root:GetAttribute("clickdown")) ..
+				" wheel " .. (root:IsShown() and "still open" or "closed"))
+		end
+		-- Plain-Lua close, runs after the action. Protected frames may only be hidden from Lua out of
+		-- combat; in combat the secure snippet below has to do it (or press the key again).
+		if not down and not self:GetAttribute("subwheel") and not InCombatLockdown() then
+			root:Hide()
 		end
 	end)
 	-- pre (sees the click's own arguments): remember whether this is the press or the release, and

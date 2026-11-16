@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.3
+- The wheel now also closes from plain Lua after a click when you are out of combat (the secure close step did not work in testing). In combat it still relies on the secure step; `/aw debug` now shows whether that step ran.
+
 ## 0.3.2
 - **Fix: the wheel now closes after a slice is clicked.** The close step read the click's press/release state in a place where it isn't available, so it never ran.
 
