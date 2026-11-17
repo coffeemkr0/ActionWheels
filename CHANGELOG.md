@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.5
+- **Fix: the active-Aspect highlight did not follow a new Aspect cast in combat.** The game hides the spell id of your casts in combat, so the cast could not be matched to a spell. ActionWheels now remembers which slice you clicked and treats the next successful cast as that spell.
+- `/aw buffs` prints what each buff lookup returns for every spell slot; `/aw debug` also reports cast confirmations.
+
 ## 0.4.4
 - **More accurate active-buff highlight in combat.** Asks the game's targeted player-buff lookup (`C_UnitAuras.GetPlayerAuraBySpellID`) first, which is exempt from the combat secrecy rules for your own buffs, and trusts an empty answer only when the game says the buff is readable. Buff removals are tracked through the never-secret `auraInstanceID`, and your own casts still fill in what the game hides. Outside combat nothing changes.
 

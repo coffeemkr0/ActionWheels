@@ -137,6 +137,12 @@ local function BuildSlice(page, i)
 				": type=" .. tostring(self:GetAttribute("type")) .. " macro=" .. string.gsub(tostring(self:GetAttribute("macrotext")), "\n", " | ") ..
 				" -> wheel " .. (root:IsShown() and "still open" or "closed"))
 		end
+		-- remember which spell was clicked, to match the game's (possibly hidden) cast confirmation
+		if not down then
+			local def = AW.P().wheels[self.page.wheelId]
+			local slot = def and def.items[self.index]
+			if slot and slot.type == "spell" then AW.NoteClick(slot.spell) end
+		end
 		-- Plain-Lua close, runs after the action. Protected frames may only be hidden from Lua out of
 		-- combat; in combat the secure snippet below has to do it (or press the key again).
 		if not down and not self:GetAttribute("subwheel") and not InCombatLockdown() then

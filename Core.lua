@@ -201,9 +201,9 @@ AW.OnEvent = function(_, event, a1, a2, a3)
 		lastAura = now
 		AW.UpdateBuffCache()
 	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-		if a1 ~= "player" or not AW.NoteCast then return end
-		local ok, name = pcall(AW.SpellName, a3)
-		if ok then AW.NoteCast(name) end
+		if a1 ~= "player" or not AW.OnCastSucceeded then return end
+		if AW.debug then AW.Print("cast succeeded (spell id " .. ((issecretvalue and issecretvalue(a3)) and "hidden" or tostring(a3)) .. ")") end
+		AW.OnCastSucceeded(a3)
 	elseif event == "ADDON_LOADED" then
 		if a1 == "ActionWheels" then AW.InitDB() end
 	elseif event == "PLAYER_LOGIN" then
@@ -240,7 +240,7 @@ local HELP = {
 	"/aw clear <slot>   /aw list   /aw slots <4-12>",
 	"/aw mode toggle|hold   /aw at cursor|center   /aw scale <0.5-2>",
 	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
-	"/aw minimap   /aw keys   /aw reset   (restore the starter wheel)",
+	"/aw minimap   /aw keys   /aw buffs   /aw debug   /aw reset   (restore the starter wheel)",
 	"/aw (no arguments) opens the settings window",
 }
 
@@ -347,6 +347,8 @@ function AW.Slash(msg)
 	elseif cmd == "debug" then
 		AW.debug = not AW.debug
 		return AW.Print("debug " .. (AW.debug and "on: clicking a slice prints what it received" or "off"))
+	elseif cmd == "buffs" then
+		for _, line in ipairs(AW.BuffReport()) do AW.Print(line) end
 	elseif cmd == "keys" then
 		AW.OpenKeyBindings()
 	elseif cmd == "" or cmd == "config" then

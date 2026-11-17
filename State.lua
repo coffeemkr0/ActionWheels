@@ -197,6 +197,56 @@ function AW.UpdateBuffCache()
 	end
 end
 
+-- You clicked a spell slice: remember which spell, so a cast confirmation whose spell id the game
+-- hides (it does in combat) can still be matched to it.
+AW.pendingCast = nil
+function AW.NoteClick(name)
+	if name then AW.pendingCast = { name = name, t = GetTime() } end
+end
+
+-- UNIT_SPELLCAST_SUCCEEDED for the player. `spellId` may be secret; then the recent click decides.
+function AW.OnCastSucceeded(spellId)
+	local name
+	if spellId ~= nil and not secret(spellId) and AW.SpellName then
+		local ok, n = pcall(AW.SpellName, spellId)
+		if ok then name = n end
+	end
+	local p = AW.pendingCast
+	if p and GetTime() - p.t < 1.5 then
+		-- an unreadable cast right after our click is that click's spell; a readable one must match
+		if not name or name == p.name then name = p.name; AW.pendingCast = nil end
+	end
+	if name then AW.NoteCast(name) end
+end
+
+-- What each source says about every spell slot (for /aw buffs).
+function AW.BuffReport()
+	local out = {}
+	local seen = {}
+	for _, w in pairs(AW.P().wheels) do
+		for _, slot in pairs(w.items) do
+			if slot.type == "spell" and slot.spell and not seen[slot.spell] then
+				seen[slot.spell] = true
+				local id = try(spellIdOf, slot.spell)
+				local tgt = "n/a"
+				if id and C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
+					local ok, d = pcall(C_UnitAuras.GetPlayerAuraBySpellID, id)
+					tgt = (not ok and "error") or (secret(d) and "secret") or (d and "found" or "nil")
+				end
+				local sec = "n/a"
+				if id and C_Secrets and C_Secrets.ShouldSpellAuraBeSecret then
+					local v = try(C_Secrets.ShouldSpellAuraBeSecret, id)
+					sec = tostring(v)
+				end
+				out[#out + 1] = slot.spell .. ": id=" .. tostring(id) .. " targeted=" .. tgt ..
+					" shouldBeSecret=" .. sec .. " cache=" .. tostring(AW.buffCache[slot.spell]) ..
+					" -> " .. tostring(AW.IsBuffActive(slot.spell))
+			end
+		end
+	end
+	return out
+end
+
 -- A cast of `name` just succeeded: assume its buff is now on (an Aspect replaces the others).
 function AW.NoteCast(name)
 	if not name or secret(name) then return end

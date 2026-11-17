@@ -261,6 +261,27 @@ issecretvalue = nil
 _COMBAT = false
 C_Spell, C_UnitAuras, C_Secrets = nil, nil, nil
 
+-- cast confirmation with a hidden spell id (combat): the clicked slice decides
+AW.buffCache, AW.pendingCast = { ["Aspect of the Hawk"] = true, ["Aspect of the Monkey"] = false }, nil
+_COMBAT = true
+issecretvalue = function(v) return getmetatable(v) == SECRET end
+GetSpellInfo = function(id) if issecretvalue(id) then error("secret") end return "Other Spell" end
+AW.NoteClick("Aspect of the Monkey")
+AW.OnEvent(nil, "UNIT_SPELLCAST_SUCCEEDED", "player", "guid", mk())
+eq(AW.buffCache["Aspect of the Monkey"], true, "hidden-id cast matched to the clicked spell")
+eq(AW.buffCache["Aspect of the Hawk"], false, "the other aspect turned off")
+eq(AW.pendingCast, nil, "click consumed")
+AW.OnEvent(nil, "UNIT_SPELLCAST_SUCCEEDED", "player", "guid", mk())
+eq(AW.buffCache["Aspect of the Hawk"], false, "a cast with no recent click changes nothing")
+AW.NoteClick("Aspect of the Hawk")
+AW.OnEvent(nil, "UNIT_SPELLCAST_SUCCEEDED", "player", "guid", 99) -- readable, different spell: not ours
+eq(AW.buffCache["Aspect of the Hawk"], false, "a readable cast of another spell does not confirm the click")
+AW.pendingCast = nil
+_COMBAT, issecretvalue = false, nil
+GetSpellInfo = function(id) return "Aimed Shot" end
+local rep = AW.BuffReport()
+eq(type(rep[1]), "string", "buff report lists slots")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
