@@ -102,6 +102,46 @@ local function hasBuff(name)
 end
 AW.HasBuff = hasBuff
 
+-- In combat the game may refuse to tell addons about buffs, so a plain lookup would say "not
+-- active". We therefore remember what we saw: the cache is refreshed whenever the lookup is
+-- trustworthy (any time out of combat) and, in combat, is also moved by your own successful casts.
+AW.buffCache = {}
+local EXCLUSIVE = "^Aspect of" -- Hunter Aspects replace one another
+
+function AW.IsBuffActive(name)
+	local seen = try(hasBuff, name)
+	if seen then
+		AW.buffCache[name] = true
+		return true
+	end
+	if AW.InCombat() then return AW.buffCache[name] and true or false end
+	AW.buffCache[name] = false
+	return false
+end
+
+-- Re-read every spell slot's buff (call out of combat / on aura changes).
+function AW.UpdateBuffCache()
+	if not (ActionWheelsDB and ActionWheelsDB.profile) then return end
+	if AW.InCombat() then return end
+	for _, w in pairs(AW.P().wheels) do
+		for _, slot in pairs(w.items) do
+			if slot.type == "spell" and slot.spell then AW.IsBuffActive(slot.spell) end
+		end
+	end
+end
+
+-- A cast of `name` just succeeded: assume its buff is now on (an Aspect replaces the others).
+function AW.NoteCast(name)
+	if not name or secret(name) then return end
+	if not AW.InCombat() then return end -- out of combat the real lookup is trusted
+	if string.find(name, EXCLUSIVE) then
+		for k in pairs(AW.buffCache) do
+			if string.find(k, EXCLUSIVE) then AW.buffCache[k] = false end
+		end
+	end
+	AW.buffCache[name] = true
+end
+
 -- Returns { cdStart, cdDur, cdSecret, count, usable, noMana, inRange, active }; any field may be nil.
 -- cdSecret means the cooldown numbers are secret: they may only be handed to a Cooldown frame.
 function AW.SlotState(slot)
@@ -121,7 +161,7 @@ function AW.SlotState(slot)
 			st.usable, st.noMana = usable and true or false, noMana and true or false
 		end
 		st.inRange = try(spellRange, name)
-		st.active = try(hasBuff, name) -- e.g. the Aspect you are in
+		st.active = AW.IsBuffActive(name) -- e.g. the Aspect you are in
 	elseif slot.type == "item" and slot.item then
 		local name = slot.item
 		st.cdStart, st.cdDur = try(function() return itemCooldown(itemId(name)) end)

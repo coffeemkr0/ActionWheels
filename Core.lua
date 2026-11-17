@@ -183,14 +183,33 @@ frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+-- keep the "which buffs are on me" memory fresh (used for the active-aspect highlight)
+if not (frame.RegisterUnitEvent and pcall(frame.RegisterUnitEvent, frame, "UNIT_AURA", "player")) then
+	pcall(frame.RegisterEvent, frame, "UNIT_AURA")
+end
+if not (frame.RegisterUnitEvent and pcall(frame.RegisterUnitEvent, frame, "UNIT_SPELLCAST_SUCCEEDED", "player")) then
+	pcall(frame.RegisterEvent, frame, "UNIT_SPELLCAST_SUCCEEDED")
+end
 
-AW.OnEvent = function(_, event, a1)
-	if event == "ADDON_LOADED" then
+local lastAura = 0
+AW.OnEvent = function(_, event, a1, a2, a3)
+	if event == "UNIT_AURA" then
+		if a1 ~= "player" or not AW.UpdateBuffCache then return end
+		local now = GetTime()
+		if now - lastAura < 0.25 then return end
+		lastAura = now
+		AW.UpdateBuffCache()
+	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+		if a1 ~= "player" or not AW.NoteCast then return end
+		local ok, name = pcall(AW.SpellName, a3)
+		if ok then AW.NoteCast(name) end
+	elseif event == "ADDON_LOADED" then
 		if a1 == "ActionWheels" then AW.InitDB() end
 	elseif event == "PLAYER_LOGIN" then
 		if not (ActionWheelsDB and ActionWheelsDB.profile) then AW.InitDB() end
 		AW.BuildWheel()
 		AW.ApplyLayout()
+		AW.UpdateBuffCache()
 		if AW.UpdateMinimap then AW.UpdateMinimap() end
 		if not ActionWheelsDB.welcomed then
 			ActionWheelsDB.welcomed = true -- never nag twice

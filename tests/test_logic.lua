@@ -210,6 +210,25 @@ local okPaint = pcall(AW.RefreshStates)
 eq(okPaint, true, "refresh survives secret values")
 C_Spell, issecretvalue = nil, nil
 
+-- buff memory in combat: the lookup goes blind, the cache keeps the last known state
+AW.buffCache = {}
+UnitAura = function(_, i) return ({ "Aspect of the Hawk" })[i] end
+eq(AW.IsBuffActive("Aspect of the Hawk"), true, "buff seen out of combat")
+_COMBAT = true
+UnitAura = function() return nil end -- the game stops answering
+eq(AW.IsBuffActive("Aspect of the Hawk"), true, "remembered in combat")
+eq(AW.SlotState({ type = "spell", spell = "Aspect of the Hawk" }).active, true, "slot shows the remembered buff")
+GetSpellInfo = function(id) return ({ [1] = "Aspect of the Monkey" })[id] end
+AW.OnEvent(nil, "UNIT_SPELLCAST_SUCCEEDED", "player", "guid", 1)
+eq(AW.IsBuffActive("Aspect of the Monkey"), true, "a successful aspect cast turns it on")
+eq(AW.IsBuffActive("Aspect of the Hawk"), false, "and the other aspect off")
+AW.OnEvent(nil, "UNIT_SPELLCAST_SUCCEEDED", "target", "guid", 1) -- other units ignored
+_COMBAT = false
+eq(AW.IsBuffActive("Aspect of the Monkey"), false, "out of combat the real lookup wins")
+UnitAura = nil
+AW.OnEvent(nil, "UNIT_AURA", "player")
+AW.OnEvent(nil, "UNIT_AURA", "party1")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")

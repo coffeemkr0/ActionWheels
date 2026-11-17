@@ -136,6 +136,8 @@ local function spellName(id, index, book)
 	end
 end
 
+AW.SpellName = spellName
+
 -- What is on the mouse cursor, as a slot: returns slot, or nil and a reason.
 function AW.SlotFromCursor()
 	if not GetCursorInfo then return nil, "nothing on the cursor" end

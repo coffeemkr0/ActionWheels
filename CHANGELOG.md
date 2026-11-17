@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.3
+- **Fix: the active-Aspect highlight in combat.** The game stops reporting buffs to addons in combat, so the highlight went blank. ActionWheels now remembers which buffs were on before combat and follows your own successful casts during it (casting an Aspect turns the other Aspects off).
+
 ## 0.4.2
 - **Fix: the wheel now closes after a click in combat.** The old close step ran inside a click wrapper that did not work. Each slice is now a secure macro that ends with `/click ActionWheelsClose` (a secure button that hides the wheel), and sub-wheel slices use `/click ActionWheelsGo<n>`. No more click wrapping.
 
