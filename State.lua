@@ -130,30 +130,43 @@ local function spellIdOf(name)
 	return id
 end
 
-local function remember(name, on, data)
+AW.buffLog = {} -- last few state changes with their source, for /aw buffs
+
+local function remember(name, on, data, why)
+	if AW.buffCache[name] ~= on then
+		AW.buffLog[#AW.buffLog + 1] = string.format("%s -> %s (%s)", name, on and "on" or "off", why or "lookup")
+		if #AW.buffLog > 20 then table.remove(AW.buffLog, 1) end
+	end
 	AW.buffCache[name] = on
+	if on and string.find(name, EXCLUSIVE) then -- only one Aspect can be on
+		for k in pairs(AW.buffCache) do
+			if k ~= name and string.find(k, EXCLUSIVE) then AW.buffCache[k] = false end
+		end
+	end
 	if on and data then
 		local ok, iid = pcall(function() return data.auraInstanceID end)
 		if ok and iid ~= nil and not secret(iid) then AW.auraInstance[iid] = name end
 	end
 end
+AW.RememberBuff = remember
 
+-- In combat the game hides buffs from addons, and "no answer" can look exactly like "buff is off".
+-- So in combat a lookup may only CONFIRM a buff; turning one off needs real evidence (a removal
+-- event for a buff we tracked, or you casting another Aspect). Out of combat the lookups are
+-- complete and are believed either way.
 function AW.IsBuffActive(name)
+	local combat = AW.InCombat()
 	local id = try(spellIdOf, name)
 	if id and C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
 		local ok, data = pcall(C_UnitAuras.GetPlayerAuraBySpellID, id)
 		if ok and not secret(data) then
-			if data then remember(name, true, data) return true end
-			local trust = not AW.InCombat()
-			if not trust and C_Secrets and C_Secrets.ShouldSpellAuraBeSecret then
-				trust = try(C_Secrets.ShouldSpellAuraBeSecret, id) == false
-			end
-			if trust then remember(name, false) return false end
+			if data then remember(name, true, data, "targeted lookup") return true end
+			if not combat then remember(name, false, nil, "targeted lookup, out of combat") return false end
 		end
 	end
-	if try(hasBuff, name) then remember(name, true) return true end
-	if AW.InCombat() then return AW.buffCache[name] and true or false end
-	remember(name, false)
+	if combat then return AW.buffCache[name] and true or false end
+	if try(hasBuff, name) then remember(name, true, nil, "aura scan") return true end
+	remember(name, false, nil, "aura scan, out of combat")
 	return false
 end
 
@@ -166,7 +179,7 @@ function AW.OnAura(info)
 			for _, iid in ipairs(info.removedAuraInstanceIDs) do
 				local name = AW.auraInstance[iid]
 				if name then
-					AW.buffCache[name] = false
+					remember(name, false, nil, "removal event")
 					AW.auraInstance[iid] = nil
 				end
 			end
@@ -174,10 +187,10 @@ function AW.OnAura(info)
 		if info.addedAuras then
 			for _, aura in ipairs(info.addedAuras) do
 				local nm, sid = aura.name, aura.spellId
-				if nm ~= nil and not secret(nm) and AW.buffCache[nm] ~= nil then remember(nm, true, aura) end
+				if nm ~= nil and not secret(nm) and AW.buffCache[nm] ~= nil then remember(nm, true, aura, "added event") end
 				if sid ~= nil and not secret(sid) then
 					for tracked in pairs(AW.buffCache) do
-						if spellIdOf(tracked) == sid then remember(tracked, true, aura) end
+						if spellIdOf(tracked) == sid then remember(tracked, true, aura, "added event") end
 					end
 				end
 			end
@@ -244,19 +257,17 @@ function AW.BuffReport()
 			end
 		end
 	end
+	for i = math.max(1, #AW.buffLog - 9), #AW.buffLog do out[#out + 1] = "log: " .. AW.buffLog[i] end
 	return out
 end
 
 -- A cast of `name` just succeeded: assume its buff is now on (an Aspect replaces the others).
+-- Only for spells we track (the ones on your slots).
 function AW.NoteCast(name)
 	if not name or secret(name) then return end
 	if not AW.InCombat() then return end -- out of combat the real lookup is trusted
-	if string.find(name, EXCLUSIVE) then
-		for k in pairs(AW.buffCache) do
-			if string.find(k, EXCLUSIVE) then AW.buffCache[k] = false end
-		end
-	end
-	AW.buffCache[name] = true
+	if AW.buffCache[name] == nil then return end
+	AW.RememberBuff(name, true, nil, "your cast")
 end
 
 -- Returns { cdStart, cdDur, cdSecret, count, usable, noMana, inRange, active }; any field may be nil.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.6
+- **Fix: the active-Aspect highlight reverting a few seconds into combat.** Once the game starts hiding buffs, "nothing found" was being read as "buff is off". In combat a lookup can now only confirm a buff; a buff is turned off only by a removal event for one we tracked, or by you casting another Aspect. Only one Aspect can be on at a time.
+- `/aw buffs` also prints the last buff changes and what caused each.
+
 ## 0.4.5
 - **Fix: the active-Aspect highlight did not follow a new Aspect cast in combat.** The game hides the spell id of your casts in combat, so the cast could not be matched to a spell. ActionWheels now remembers which slice you clicked and treats the next successful cast as that spell.
 - `/aw buffs` prints what each buff lookup returns for every spell slot; `/aw debug` also reports cast confirmations.

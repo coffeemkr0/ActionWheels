@@ -218,6 +218,7 @@ _COMBAT = true
 UnitAura = function() return nil end -- the game stops answering
 eq(AW.IsBuffActive("Aspect of the Hawk"), true, "remembered in combat")
 eq(AW.SlotState({ type = "spell", spell = "Aspect of the Hawk" }).active, true, "slot shows the remembered buff")
+AW.buffCache["Aspect of the Monkey"] = false -- tracked: it is on a slot
 GetSpellInfo = function(id) return ({ [1] = "Aspect of the Monkey" })[id] end
 AW.OnEvent(nil, "UNIT_SPELLCAST_SUCCEEDED", "player", "guid", 1)
 eq(AW.IsBuffActive("Aspect of the Monkey"), true, "a successful aspect cast turns it on")
@@ -244,15 +245,21 @@ AW.IsBuffActive("Aspect of the Hawk")
 _COMBAT = true
 present = false
 C_Secrets = { ShouldSpellAuraBeSecret = function() return false end }
-eq(AW.IsBuffActive("Aspect of the Hawk"), false, "empty answer trusted in combat when the aura is readable")
-C_Secrets = { ShouldSpellAuraBeSecret = function() return true end }
+eq(AW.IsBuffActive("Aspect of the Hawk"), true, "an empty answer in combat never turns a buff off")
 AW.buffCache["Aspect of the Hawk"] = true
-eq(AW.IsBuffActive("Aspect of the Hawk"), true, "empty answer NOT trusted when the aura is secret: last known state")
 AW.auraInstance[77] = "Aspect of the Hawk"
 AW.OnEvent(nil, "UNIT_AURA", "player", { removedAuraInstanceIDs = { 77 } })
 eq(AW.IsBuffActive("Aspect of the Hawk"), false, "removal tracked by auraInstanceID")
 AW.OnEvent(nil, "UNIT_AURA", "player", { addedAuras = { { name = "Aspect of the Hawk", spellId = HAWK, auraInstanceID = 78 } } })
 eq(AW.IsBuffActive("Aspect of the Hawk"), true, "readable addition tracked")
+-- exclusivity and log
+AW.RememberBuff("Aspect of the Monkey", true, nil, "test")
+eq(AW.buffCache["Aspect of the Hawk"], false, "turning one Aspect on turns the others off")
+AW.RememberBuff("Aspect of the Hawk", true, nil, "test")
+eq(AW.buffCache["Aspect of the Monkey"], false, "and back")
+eq(#AW.buffLog > 0, true, "changes are logged")
+AW.NoteCast("Untracked Spell")
+eq(AW.buffCache["Untracked Spell"], nil, "casts of spells we don't track are ignored")
 eq(AW.auraInstance[78], "Aspect of the Hawk", "new instance id remembered")
 issecretvalue = function(v) return getmetatable(v) == SECRET end
 AW.OnEvent(nil, "UNIT_AURA", "player", { addedAuras = { { name = mk(), spellId = mk(), auraInstanceID = 79 } } })
