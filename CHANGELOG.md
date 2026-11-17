@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.4
+- **More accurate active-buff highlight in combat.** Asks the game's targeted player-buff lookup (`C_UnitAuras.GetPlayerAuraBySpellID`) first, which is exempt from the combat secrecy rules for your own buffs, and trusts an empty answer only when the game says the buff is readable. Buff removals are tracked through the never-secret `auraInstanceID`, and your own casts still fill in what the game hides. Outside combat nothing changes.
+
 ## 0.4.3
 - **Fix: the active-Aspect highlight in combat.** The game stops reporting buffs to addons in combat, so the highlight went blank. ActionWheels now remembers which buffs were on before combat and follows your own successful casts during it (casting an Aspect turns the other Aspects off).
 

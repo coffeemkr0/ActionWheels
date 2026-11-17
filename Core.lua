@@ -195,6 +195,7 @@ local lastAura = 0
 AW.OnEvent = function(_, event, a1, a2, a3)
 	if event == "UNIT_AURA" then
 		if a1 ~= "player" or not AW.UpdateBuffCache then return end
+		if AW.OnAura then AW.OnAura(a2) end -- every event: removals must not be missed
 		local now = GetTime()
 		if now - lastAura < 0.25 then return end
 		lastAura = now

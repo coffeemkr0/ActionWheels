@@ -102,21 +102,88 @@ local function hasBuff(name)
 end
 AW.HasBuff = hasBuff
 
--- In combat the game may refuse to tell addons about buffs, so a plain lookup would say "not
--- active". We therefore remember what we saw: the cache is refreshed whenever the lookup is
--- trustworthy (any time out of combat) and, in combat, is also moved by your own successful casts.
-AW.buffCache = {}
+-- Is the player's buff `name` on? Best answer available, most reliable source first:
+--   1. C_UnitAuras.GetPlayerAuraBySpellID(spellID): a targeted lookup the game exempts from the
+--      secret-value rules for the player's own buffs. An aura means "on". An empty answer means
+--      "off" out of combat, or in combat when C_Secrets.ShouldSpellAuraBeSecret(spellID) is false.
+--   2. The older lookups (by name / by index), which work out of combat.
+--   3. In combat, when the game won't say: what we last knew, kept current by UNIT_AURA removals
+--      (auraInstanceID is never secret) and by your own successful casts (NoteCast).
+AW.buffCache = {}      -- name -> true/false, last known
+AW.auraInstance = {}   -- auraInstanceID -> name, for the buffs we track
+AW.spellIdCache = {}
 local EXCLUSIVE = "^Aspect of" -- Hunter Aspects replace one another
 
-function AW.IsBuffActive(name)
-	local seen = try(hasBuff, name)
-	if seen then
-		AW.buffCache[name] = true
-		return true
+local function spellIdOf(name)
+	local c = AW.spellIdCache[name]
+	if c ~= nil then return c or nil end
+	local id
+	if C_Spell and C_Spell.GetSpellInfo then
+		local i = C_Spell.GetSpellInfo(name)
+		if type(i) == "table" then id = i.spellID end
+	elseif GetSpellInfo then
+		local _, _, _, _, _, _, sid = GetSpellInfo(name)
+		id = sid
 	end
+	if secret(id) then return nil end
+	AW.spellIdCache[name] = id or false
+	return id
+end
+
+local function remember(name, on, data)
+	AW.buffCache[name] = on
+	if on and data then
+		local ok, iid = pcall(function() return data.auraInstanceID end)
+		if ok and iid ~= nil and not secret(iid) then AW.auraInstance[iid] = name end
+	end
+end
+
+function AW.IsBuffActive(name)
+	local id = try(spellIdOf, name)
+	if id and C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
+		local ok, data = pcall(C_UnitAuras.GetPlayerAuraBySpellID, id)
+		if ok and not secret(data) then
+			if data then remember(name, true, data) return true end
+			local trust = not AW.InCombat()
+			if not trust and C_Secrets and C_Secrets.ShouldSpellAuraBeSecret then
+				trust = try(C_Secrets.ShouldSpellAuraBeSecret, id) == false
+			end
+			if trust then remember(name, false) return false end
+		end
+	end
+	if try(hasBuff, name) then remember(name, true) return true end
 	if AW.InCombat() then return AW.buffCache[name] and true or false end
-	AW.buffCache[name] = false
+	remember(name, false)
 	return false
+end
+
+-- UNIT_AURA for the player. Removals are tracked through the (never secret) auraInstanceID of
+-- buffs we saw earlier; additions are matched by spell id when the game lets us read it.
+function AW.OnAura(info)
+	if type(info) ~= "table" then return end
+	local ok = pcall(function()
+		if info.removedAuraInstanceIDs then
+			for _, iid in ipairs(info.removedAuraInstanceIDs) do
+				local name = AW.auraInstance[iid]
+				if name then
+					AW.buffCache[name] = false
+					AW.auraInstance[iid] = nil
+				end
+			end
+		end
+		if info.addedAuras then
+			for _, aura in ipairs(info.addedAuras) do
+				local nm, sid = aura.name, aura.spellId
+				if nm ~= nil and not secret(nm) and AW.buffCache[nm] ~= nil then remember(nm, true, aura) end
+				if sid ~= nil and not secret(sid) then
+					for tracked in pairs(AW.buffCache) do
+						if spellIdOf(tracked) == sid then remember(tracked, true, aura) end
+					end
+				end
+			end
+		end
+	end)
+	return ok
 end
 
 -- Re-read every spell slot's buff (call out of combat / on aura changes).

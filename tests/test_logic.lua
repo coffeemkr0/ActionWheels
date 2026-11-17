@@ -229,6 +229,38 @@ UnitAura = nil
 AW.OnEvent(nil, "UNIT_AURA", "player")
 AW.OnEvent(nil, "UNIT_AURA", "party1")
 
+-- the targeted player-aura lookup and instance-id tracking
+AW.buffCache, AW.auraInstance, AW.spellIdCache = {}, {}, {}
+local HAWK = 13165
+local present = true
+C_Spell = { GetSpellInfo = function(n) if n == "Aspect of the Hawk" then return { spellID = HAWK } end end }
+C_UnitAuras = { GetPlayerAuraBySpellID = function(id) if id == HAWK and present then return { auraInstanceID = 77 } end end }
+eq(AW.IsBuffActive("Aspect of the Hawk"), true, "targeted lookup finds the buff")
+eq(AW.auraInstance[77], "Aspect of the Hawk", "instance id remembered")
+present = false
+eq(AW.IsBuffActive("Aspect of the Hawk"), false, "targeted lookup says off out of combat")
+present = true
+AW.IsBuffActive("Aspect of the Hawk")
+_COMBAT = true
+present = false
+C_Secrets = { ShouldSpellAuraBeSecret = function() return false end }
+eq(AW.IsBuffActive("Aspect of the Hawk"), false, "empty answer trusted in combat when the aura is readable")
+C_Secrets = { ShouldSpellAuraBeSecret = function() return true end }
+AW.buffCache["Aspect of the Hawk"] = true
+eq(AW.IsBuffActive("Aspect of the Hawk"), true, "empty answer NOT trusted when the aura is secret: last known state")
+AW.auraInstance[77] = "Aspect of the Hawk"
+AW.OnEvent(nil, "UNIT_AURA", "player", { removedAuraInstanceIDs = { 77 } })
+eq(AW.IsBuffActive("Aspect of the Hawk"), false, "removal tracked by auraInstanceID")
+AW.OnEvent(nil, "UNIT_AURA", "player", { addedAuras = { { name = "Aspect of the Hawk", spellId = HAWK, auraInstanceID = 78 } } })
+eq(AW.IsBuffActive("Aspect of the Hawk"), true, "readable addition tracked")
+eq(AW.auraInstance[78], "Aspect of the Hawk", "new instance id remembered")
+issecretvalue = function(v) return getmetatable(v) == SECRET end
+AW.OnEvent(nil, "UNIT_AURA", "player", { addedAuras = { { name = mk(), spellId = mk(), auraInstanceID = 79 } } })
+eq(AW.OnAura({ addedAuras = { { name = mk(), spellId = mk() } }, removedAuraInstanceIDs = { 5 } }), true, "secret aura fields never raise errors")
+issecretvalue = nil
+_COMBAT = false
+C_Spell, C_UnitAuras, C_Secrets = nil, nil, nil
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
