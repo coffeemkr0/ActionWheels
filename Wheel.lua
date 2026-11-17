@@ -18,7 +18,7 @@ ActionWheels = ActionWheels or {}
 local AW = ActionWheels
 
 local TEX = "Interface\\AddOns\\ActionWheels\\Textures\\"
-local root, toggle, catcher
+local root, toggle, catcher, closeBtn
 local pages = {}      -- pages[k] = page frame; page k shows the k-th wheel of p.order
 local pageOf = {}     -- wheel id -> page name, rebuilt by ApplyLayout
 local nextBtn, prevBtn -- global secure buttons for the "next / previous wheel" key bindings
@@ -134,9 +134,8 @@ local function BuildSlice(page, i)
 	b:HookScript("OnClick", function(self, button, down)
 		if AW.debug then
 			AW.Print("slice " .. self.index .. " " .. tostring(button) .. (down and " down" or " up") ..
-				": type=" .. tostring(self:GetAttribute("type")) .. " spell=" .. tostring(self:GetAttribute("spell")) ..
-				" | secure close: clickdown=" .. tostring(root:GetAttribute("clickdown")) ..
-				" wheel " .. (root:IsShown() and "still open" or "closed"))
+				": type=" .. tostring(self:GetAttribute("type")) .. " macro=" .. string.gsub(tostring(self:GetAttribute("macrotext")), "\n", " | ") ..
+				" -> wheel " .. (root:IsShown() and "still open" or "closed"))
 		end
 		-- Plain-Lua close, runs after the action. Protected frames may only be hidden from Lua out of
 		-- combat; in combat the secure snippet below has to do it (or press the key again).
@@ -144,16 +143,6 @@ local function BuildSlice(page, i)
 			root:Hide()
 		end
 	end)
-	-- pre (sees the click's own arguments): remember whether this is the press or the release, and
-	-- let a sub-wheel slice switch page on the release.
-	-- post (does NOT get the same arguments, so it must not read `down`): after the release, any
-	-- slice that isn't a sub-wheel link closes the wheel once its action has run.
-	SecureHandlerWrapScript(b, "OnClick", root,
-		[[ owner:SetAttribute("clickdown", down and 1 or 0)
-		   if down then return end
-		   local t = self:GetAttribute("subwheel"); if t then owner:RunAttribute("gopage", t, true) end ]],
-		[[ if owner:GetAttribute("clickdown") == 1 then return end
-		   if not self:GetAttribute("subwheel") then owner:Hide() end ]])
 	return b
 end
 
@@ -177,6 +166,11 @@ local function BuildPage(k)
 	page.back:SetPoint("CENTER", page, "CENTER", 0, -28)
 	page.slices = {}
 	for i = 1, AW.MAXSLOTS do page.slices[i] = BuildSlice(page, i) end
+	-- "/click ActionWheelsGo<k>" (from a sub-wheel slice's macro) switches to this page
+	local go = CreateFrame("Button", "ActionWheelsGo" .. k, UIParent, "SecureHandlerClickTemplate")
+	go:RegisterForClicks("AnyDown", "AnyUp")
+	go:SetFrameRef("root", root)
+	go:SetAttribute("_onclick", [[ local r = self:GetFrameRef("root"); if r:IsShown() then r:RunAttribute("gopage", "page]] .. k .. [[", true) end ]])
 	-- let secure code find this page by name
 	root:SetFrameRef(pageName(k), page)
 	toggle:SetFrameRef(pageName(k), page)
@@ -201,7 +195,15 @@ local function Build()
 	catcher:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, 0)
 	catcher:SetFrameLevel(root:GetFrameLevel())
 	catcher:RegisterForClicks("AnyUp")
-	catcher:SetAttribute("_onclick", [[ self:GetParent():Hide() ]])
+	catcher:SetFrameRef("wheel", root)
+	catcher:SetAttribute("_onclick", [[ self:GetFrameRef("wheel"):Hide() ]])
+
+	-- Target of the "/click ActionWheelsClose" line every slice's macro ends with. A secure macro may
+	-- /click a secure handler in combat, which is how a slice closes the wheel after it ran.
+	closeBtn = CreateFrame("Button", "ActionWheelsClose", UIParent, "SecureHandlerClickTemplate")
+	closeBtn:RegisterForClicks("AnyDown", "AnyUp")
+	closeBtn:SetFrameRef("wheel", root)
+	closeBtn:SetAttribute("_onclick", [[ self:GetFrameRef("wheel"):Hide() ]])
 
 	root.hubBg = root:CreateTexture(nil, "BACKGROUND")
 	root.hubBg:SetTexture(TEX .. "Circle")
@@ -352,8 +354,10 @@ local function LayoutPage(page, id, k, count, targets)
 			if slot and slot.type == "wheel" and not pageOf[slot.wheel] then slot = nil end -- dangling link
 			if slot and slot.type == "wheel" then
 				b:SetAttribute("subwheel", pageOf[slot.wheel])
+				-- the page name is "page<k>": switch with /click ActionWheelsGo<k>
+				for key, v in pairs(AW.SecureAttributes(slot, string.match(pageOf[slot.wheel], "%d+"))) do b:SetAttribute(key, v) end
 			else
-				for key, v in pairs(AW.SlotAttributes(slot)) do b:SetAttribute(key, v) end
+				for key, v in pairs(AW.SecureAttributes(slot)) do b:SetAttribute(key, v) end
 			end
 			b:SetWidth(btn)
 			b:SetHeight(btn)

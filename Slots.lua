@@ -59,6 +59,22 @@ function AW.SlotAttributes(slot)
 	return {}
 end
 
+-- What the slice's secure button really gets. Every slice runs as a macro whose last line
+-- /click's ActionWheelsClose (a secure handler that hides the wheel), so the wheel closes after the
+-- action even in combat. A sub-wheel slice (goPage = the target page number) /click's that page's
+-- ActionWheelsGo<k> button instead and leaves the wheel open.
+AW.CLOSE_LINE = "/click ActionWheelsClose"
+function AW.SecureAttributes(slot, goPage)
+	if goPage then return { type = "macro", macrotext = "/click ActionWheelsGo" .. goPage } end
+	local a = AW.SlotAttributes(slot)
+	local body
+	if a.type == "spell" then body = "/cast " .. a.spell
+	elseif a.type == "item" then body = "/use " .. a.item
+	elseif a.type == "macro" then body = a.macrotext end
+	if not body then return {} end
+	return { type = "macro", macrotext = body .. "\n" .. AW.CLOSE_LINE }
+end
+
 -- Short text for the hub and for /aw list.
 function AW.DescribeSlot(slot)
 	if AW.IsEmpty(slot) then return "(empty)" end

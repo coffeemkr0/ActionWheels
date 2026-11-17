@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.2
+- **Fix: the wheel now closes after a click in combat.** The old close step ran inside a click wrapper that did not work. Each slice is now a secure macro that ends with `/click ActionWheelsClose` (a secure button that hides the wheel), and sub-wheel slices use `/click ActionWheelsGo<n>`. No more click wrapping.
+
 ## 0.4.1
 - **Fix: errors in combat** ("attempt to compare ... a secret number value"). In combat the game hides cooldown numbers from addons. ActionWheels now hands them straight to the cooldown swirl without comparing them, ignores charges / usable / range when the game hides those too, and can no longer raise an error from the live display.
 

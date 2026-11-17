@@ -39,9 +39,10 @@ AW.OnEvent(nil, "ADDON_LOADED", "ActionWheels")
 eq(#AW.P().wheels.main.items, 8, "starter wheel has 8 slots")
 AW.OnEvent(nil, "PLAYER_LOGIN")
 eq(_G.ActionWheelsP1S1:GetAttribute("type"), "macro", "slice 1 is the pet attack macro")
-eq(_G.ActionWheelsP1S1:GetAttribute("macrotext"), "/petattack", "slice 1 macro text")
-eq(_G.ActionWheelsP1S7:GetAttribute("item"), "Hearthstone", "slice 7 is Hearthstone")
-eq(#_WRAPS, AW.MAXSLOTS, "every slice of the first page is wrapped")
+eq(_G.ActionWheelsP1S1:GetAttribute("macrotext"), "/petattack\n/click ActionWheelsClose", "slice 1 macro text closes the wheel")
+eq(_G.ActionWheelsP1S7:GetAttribute("macrotext"), "/use Hearthstone\n/click ActionWheelsClose", "slice 7 is Hearthstone")
+eq(_G.ActionWheelsClose ~= nil, true, "close button exists"); eq(_G.ActionWheelsGo1 ~= nil, true, "page button exists")
+eq(#_WRAPS, 0, "no click wrapping any more")
 
 -- slash: set / clear / combat deferral
 AW.Slash("set 1 spell Aimed Shot")
@@ -69,13 +70,12 @@ _COMBAT = true
 AW.Slash("set 4 spell Multi-Shot")
 eq(AW.P().wheels.main.items[4].spell, "Multi-Shot", "data updates in combat")
 eq(AW.pendingApply, true, "layout deferred in combat")
-eq(_G.ActionWheelsP1S4:GetAttribute("macrotext"), "/petpassive", "attributes untouched in combat")
+eq(_G.ActionWheelsP1S4:GetAttribute("macrotext"), "/petpassive\n/click ActionWheelsClose", "attributes untouched in combat")
 _COMBAT = false
 AW.OnEvent(nil, "PLAYER_REGEN_ENABLED")
 eq(AW.pendingApply, false, "layout applied when combat ends")
-eq(_G.ActionWheelsP1S4:GetAttribute("spell"), "Multi-Shot", "attribute applied after combat")
-eq(_G.ActionWheelsP1S1:GetAttribute("spell"), "Aimed Shot", "slice 1 changed to a spell")
-eq(_G.ActionWheelsP1S1:GetAttribute("macrotext"), nil, "old macro text cleared")
+eq(_G.ActionWheelsP1S4:GetAttribute("macrotext"), "/cast Multi-Shot\n/click ActionWheelsClose", "attribute applied after combat")
+eq(_G.ActionWheelsP1S1:GetAttribute("macrotext"), "/cast Aimed Shot\n/click ActionWheelsClose", "slice 1 changed to a spell, old macro replaced")
 eq(_G.ActionWheelsToggle:GetAttribute("mode"), "hold", "toggle button got the open mode")
 eq(ActionWheelsDB.profile.wheels.main.items[4].spell, "Multi-Shot", "deferred slot persisted")
 
@@ -91,7 +91,7 @@ AW.Slash("wheel select 1")
 AW.Slash("set 8 wheel Extra")
 eq(AW.P().wheels.main.items[8].wheel, "w2", "wheel slot resolves the name to an id")
 eq(_G.ActionWheelsP1S8:GetAttribute("subwheel"), "page2", "slice links to page 2")
-eq(_G.ActionWheelsP1S8:GetAttribute("type"), nil, "sub-wheel slice has no secure action")
+eq(_G.ActionWheelsP1S8:GetAttribute("macrotext"), "/click ActionWheelsGo2", "sub-wheel slice clicks the page button")
 eq(_G.ActionWheelsRoot:GetAttribute("home"), "page1", "home follows the selection")
 eq(_G.ActionWheelsRoot:GetAttribute("cur"), "page1", "current page reset to home")
 AW.Slash("set 8 wheel Main")
@@ -115,6 +115,8 @@ eq(#AW.P().order, AW.MAXWHEELS, "wheel count capped")
 -- reset
 AW.Slash("reset")
 eq(AW.P().wheels.main.items[1].pet, "attack", "reset restores the starter wheel")
+eq(AW.SecureAttributes({ type = "macro", macrotext = "/x" }).macrotext, "/x\n/click ActionWheelsClose", "macro slots get the close line")
+eq(next(AW.SecureAttributes(nil)), nil, "empty slots have no secure attributes")
 
 -- live state: classic-style API
 GetSpellCooldown = function(n) return 100, 10, 1 end
@@ -251,7 +253,7 @@ GetSpellInfo = function(id) return "Aimed Shot" end
 local cleared = _CLEARED
 eq(AW.DropOnSlot("main", 2), true, "drop onto a slot")
 eq(AW.P().wheels.main.items[2].spell, "Aimed Shot", "dropped spell stored")
-eq(_G.ActionWheelsP1S2:GetAttribute("spell"), "Aimed Shot", "dropped spell reaches the secure button")
+eq(_G.ActionWheelsP1S2:GetAttribute("macrotext"), "/cast Aimed Shot\n/click ActionWheelsClose", "dropped spell reaches the secure button")
 eq(_CLEARED, cleared + 1, "cursor cleared after the drop")
 _COMBAT = true
 eq(AW.DropOnSlot("main", 3), false, "no drops in combat")
