@@ -5,7 +5,21 @@ local AW = ActionWheels
 
 AW.GCD = 1.5 -- cooldowns this short are the global cooldown; not drawn
 
+-- In combat the client hands addons "secret" values (cooldown times and the like). They can be
+-- passed to widgets but never compared, branched on or used in arithmetic, or the addon errors.
+-- Everything below checks secret() before touching a value, and try() keeps one bad API call from
+-- breaking the rest of a slot's state.
+local function secret(v)
+	return issecretvalue ~= nil and issecretvalue(v) and true or false
+end
+
+local function try(fn, ...)
+	local ok, a, b, c, d = pcall(fn, ...)
+	if ok then return a, b, c, d end
+end
+
 local function range(r)
+	if secret(r) then return nil end
 	if r == 1 or r == true then return true end
 	if r == 0 or r == false then return false end
 	return nil
@@ -14,7 +28,7 @@ end
 local function spellCooldown(name)
 	if C_Spell and C_Spell.GetSpellCooldown then
 		local c = C_Spell.GetSpellCooldown(name)
-		if type(c) == "table" then return c.startTime, c.duration end
+		if type(c) == "table" then return c.startTime, c.duration, c.isOnGCD end
 		return nil
 	end
 	if GetSpellCooldown then
@@ -88,34 +102,48 @@ local function hasBuff(name)
 end
 AW.HasBuff = hasBuff
 
--- Returns { cdStart, cdDur, count, usable, noMana, inRange, active }; any field may be nil.
+-- Returns { cdStart, cdDur, cdSecret, count, usable, noMana, inRange, active }; any field may be nil.
+-- cdSecret means the cooldown numbers are secret: they may only be handed to a Cooldown frame.
 function AW.SlotState(slot)
 	local st = {}
 	if AW.IsEmpty(slot) then return st end
+	local onGCD
 	if slot.type == "spell" and slot.spell then
 		local name = slot.spell
-		st.cdStart, st.cdDur = spellCooldown(name)
-		local cur, max = spellCharges(name)
-		if max and max > 1 then
+		st.cdStart, st.cdDur, onGCD = try(spellCooldown, name)
+		local cur, max = try(spellCharges, name)
+		if max ~= nil and cur ~= nil and not secret(max) and not secret(cur) and max > 1 then
 			st.count = cur
-			if cur and cur > 0 then st.cdStart, st.cdDur = nil, nil end -- still castable: no swirl
+			if cur > 0 then st.cdStart, st.cdDur = nil, nil end -- still castable: no swirl
 		end
-		local usable, noMana = spellUsable(name)
-		st.usable, st.noMana = usable and true or false, noMana and true or false
-		st.inRange = spellRange(name)
-		st.active = hasBuff(name) -- e.g. the Aspect you are in
+		local usable, noMana = try(spellUsable, name)
+		if not secret(usable) and not secret(noMana) then
+			st.usable, st.noMana = usable and true or false, noMana and true or false
+		end
+		st.inRange = try(spellRange, name)
+		st.active = try(hasBuff, name) -- e.g. the Aspect you are in
 	elseif slot.type == "item" and slot.item then
 		local name = slot.item
-		st.cdStart, st.cdDur = itemCooldown(itemId(name))
-		local n = itemCount(name)
-		if n then st.count = n end
+		st.cdStart, st.cdDur = try(function() return itemCooldown(itemId(name)) end)
+		local n = try(itemCount, name)
+		if n ~= nil and not secret(n) then st.count = n end
 		local usable, noMana = true, false
-		if IsUsableItem then usable, noMana = IsUsableItem(name) end
-		if n and n <= 0 then usable = false end
-		st.usable, st.noMana = usable and true or false, noMana and true or false
-		st.inRange = itemRange(name)
+		if IsUsableItem then usable, noMana = try(IsUsableItem, name) end
+		if not secret(usable) and not secret(noMana) then
+			if st.count and st.count <= 0 then usable = false end
+			st.usable, st.noMana = usable and true or false, noMana and true or false
+		end
+		st.inRange = try(itemRange, name)
 	end
-	if st.cdDur and st.cdDur <= AW.GCD then st.cdStart, st.cdDur = nil, nil end
+	-- cooldown: secret numbers are passed through untouched; plain ones drop the global cooldown
+	if st.cdDur ~= nil or st.cdStart ~= nil then
+		if secret(st.cdDur) or secret(st.cdStart) then
+			st.cdSecret = true
+			if onGCD ~= nil and not secret(onGCD) and onGCD then st.cdStart, st.cdDur, st.cdSecret = nil, nil, nil end
+		elseif st.cdDur and st.cdDur <= AW.GCD then
+			st.cdStart, st.cdDur = nil, nil
+		end
+	end
 	return st
 end
 

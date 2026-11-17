@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.1
+- **Fix: errors in combat** ("attempt to compare ... a secret number value"). In combat the game hides cooldown numbers from addons. ActionWheels now hands them straight to the cooldown swirl without comparing them, ignores charges / usable / range when the game hides those too, and can no longer raise an error from the live display.
+
 ## 0.4.0
 - **Active buffs are highlighted.** A spell slice whose buff is on you (for example your current Hunter Aspect) gets a bright green ring and a soft glow while the wheel is open.
 

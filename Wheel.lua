@@ -267,7 +267,11 @@ end
 ---------------------------------------------------------------------------
 local function Paint(b, slot)
 	local st = AW.SlotState(slot)
-	if st.cdStart and st.cdDur and st.cdDur > 0 then
+	if st.cdSecret then
+		-- secret numbers: no comparing, just hand them to the swirl each refresh
+		b.cd:SetCooldown(st.cdStart, st.cdDur)
+		b.cdStart, b.cdDur = true, true
+	elseif st.cdStart and st.cdDur and st.cdDur > 0 then
 		if b.cdStart ~= st.cdStart or b.cdDur ~= st.cdDur then
 			b.cd:SetCooldown(st.cdStart, st.cdDur)
 			b.cdStart, b.cdDur = st.cdStart, st.cdDur
@@ -304,7 +308,8 @@ function AW.RefreshStates()
 				for i = 1, def.slots do
 					local slot = def.items[i]
 					if not AW.IsEmpty(slot) and slot.type ~= "pet" and slot.type ~= "wheel" and slot.type ~= "macro" then
-						Paint(page.slices[i], slot)
+						-- never let a display problem become an error message
+						pcall(Paint, page.slices[i], slot)
 					end
 				end
 			end

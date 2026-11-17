@@ -175,6 +175,39 @@ eq(AW.SlotState({ type = "spell", spell = "B" }).active, true, "active buff foun
 eq(AW.SlotState({ type = "spell", spell = "C" }).active, false, "inactive buff (C_UnitAuras)")
 C_UnitAuras = nil
 
+-- secret values (combat): never compare or branch on them
+local SECRET = {}
+local function mk() return setmetatable({}, SECRET) end
+issecretvalue = function(v) return getmetatable(v) == SECRET end
+C_Spell = {
+	GetSpellCooldown = function() return { startTime = mk(), duration = mk(), isOnGCD = false } end,
+	GetSpellCharges = function() return { currentCharges = mk(), maxCharges = mk() } end,
+	IsSpellUsable = function() return mk(), mk() end,
+	IsSpellInRange = function() return mk() end,
+}
+local sec = AW.SlotState({ type = "spell", spell = "X" })
+eq(sec.cdSecret, true, "secret cooldown flagged")
+eq(sec.count, nil, "secret charges ignored")
+eq(sec.usable, nil, "secret usable ignored")
+eq(sec.inRange, nil, "secret range ignored")
+C_Spell.GetSpellCooldown = function() return { startTime = mk(), duration = mk(), isOnGCD = true } end
+eq(AW.SlotState({ type = "spell", spell = "X" }).cdSecret, nil, "secret global cooldown hidden via isOnGCD")
+C_Spell.GetSpellCooldown = function() return { startTime = mk(), duration = mk(), isOnGCD = false } end
+-- the item path with secrets
+GetItemCooldown = function() return mk(), mk() end
+GetItemCount = function() return mk() end
+IsUsableItem = function() return mk(), mk() end
+IsItemInRange = function() return mk() end
+local si = AW.SlotState({ type = "item", item = "Hearthstone" })
+eq(si.cdSecret, true, "secret item cooldown flagged"); eq(si.count, nil, "secret item count ignored")
+-- painting a secret cooldown must not error
+AW.Slash("reset")
+AW.Slash("set 1 spell Aimed Shot")
+_G.ActionWheelsPage1:Show()
+local okPaint = pcall(AW.RefreshStates)
+eq(okPaint, true, "refresh survives secret values")
+C_Spell, issecretvalue = nil, nil
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
