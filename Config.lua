@@ -124,7 +124,7 @@ local ringButtons = {}
 local KINDS = {
 	{ "spell", "Spell", "Spell name, e.g. Aimed Shot. Or drag one from your spellbook onto a slot in the ring." },
 	{ "item", "Item", "Item name, e.g. Hearthstone. Or drag an item from your bags onto a slot." },
-	{ "macro", "Macro", "Macro text; type \\n for a new line. Or drag a macro onto a slot." },
+	{ "macro", "Macro", "Macro text; type \\n for a new line. Start with #showtooltip Spell to borrow that spell's icon and cooldown. Or drag a macro onto a slot." },
 	{ "pet", "Pet", "attack, follow, stay, passive, defensive, aggressive or assist" },
 	{ "wheel", "Wheel", "Name or number of the wheel this slot opens." },
 }

@@ -87,10 +87,79 @@ function AW.DescribeSlot(slot)
 	return tostring(slot[slot.type] or slot.type)
 end
 
+---------------------------------------------------------------------------
+-- #showtooltip: a macro slot that borrows the look and live state of the spell / item it uses
+---------------------------------------------------------------------------
+-- Pick one option out of "[cond] A; [cond2] B; C". Uses the game's own parser when present so
+-- conditionals ([mod:shift], [combat], [mounted]...) are evaluated for real.
+local function pickOption(arg)
+	if SecureCmdOptionParse then
+		local ok, result = pcall(SecureCmdOptionParse, arg)
+		if ok then
+			if type(result) ~= "string" or result == "" then return nil end
+			return result
+		end
+	end
+	-- no parser (tests, odd clients): the unconditional default clause, else the first clause
+	local first, default
+	for clause in string.gmatch(arg, "[^;]+") do
+		clause = string.gsub(clause, "^%s+", "")
+		first = first or clause
+		if not string.find(clause, "^%[") then default = clause end
+	end
+	local pick = default or first
+	if not pick then return nil end
+	return (string.gsub(pick, "^%b[]%s*", ""))
+end
+
+local function cleanName(n)
+	n = string.gsub(n or "", "^%s+", "")
+	n = string.gsub(n, "%s+$", "")
+	n = string.gsub(n, "^!", "") -- "!Name" = don't toggle off
+	n = string.gsub(n, "%s*%(Rank %d+%)$", "")
+	n = string.gsub(n, "%s*%(Rank %d+%)$", "")
+	return n ~= "" and n or nil
+end
+
+local function isSpell(name)
+	if C_Spell and C_Spell.GetSpellInfo then return C_Spell.GetSpellInfo(name) ~= nil end
+	if GetSpellInfo then return GetSpellInfo(name) ~= nil end
+	return false
+end
+
+-- The "virtual slot" ({type="spell"...} or {type="item"...}) a macro's #showtooltip points at, or nil.
+-- "#showtooltip" alone means: the first spell / item the macro casts or uses.
+function AW.MacroTooltipSlot(macrotext)
+	if type(macrotext) ~= "string" then return nil end
+	local arg
+	for line in string.gmatch(macrotext, "[^\n]+") do
+		local a = string.match(line, "^%s*[#/]showtooltip%s*(.-)%s*$") or string.match(line, "^%s*#show%s*(.-)%s*$")
+		if a then arg = a break end
+	end
+	if not arg then return nil end
+	if arg == "" then
+		for line in string.gmatch(macrotext, "[^\n]+") do
+			local cmd, rest = string.match(line, "^%s*/(%a+)%s+(.+)$")
+			cmd = cmd and string.lower(cmd)
+			if cmd == "cast" or cmd == "use" or cmd == "castrandom" or cmd == "cast" then arg = rest break end
+		end
+		if arg == "" then return nil end
+	end
+	local name = cleanName(pickOption(arg))
+	if not name then return nil end
+	if tonumber(name) then return nil end -- slot numbers / ids: not supported
+	if isSpell(name) then return { type = "spell", spell = name } end
+	return { type = "item", item = name }
+end
+
 -- Icon to show: explicit slot.icon, else the spell/item/pet-command icon, else a question mark.
 local QUESTION = "Interface\\Icons\\INV_Misc_QuestionMark"
 function AW.SlotIcon(slot)
 	if AW.IsEmpty(slot) then return nil end
+	if slot.type == "macro" then
+		local v = AW.MacroTooltipSlot(slot.macrotext)
+		if v then return AW.SlotIcon({ type = v.type, spell = v.spell, item = v.item }) end
+	end
 	if slot.icon and slot.icon ~= "" then return slot.icon end
 	if slot.type == "pet" and AW.PET_COMMANDS[slot.pet] then return AW.PET_COMMANDS[slot.pet][2] end
 	if slot.type == "wheel" then return "Interface\\Icons\\INV_Misc_Map_01" end

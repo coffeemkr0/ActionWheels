@@ -18,6 +18,9 @@
 - **More than one wheel:** use the `<` `>` arrows in the centre, or bind **Next wheel / Previous wheel**. A slot can open another wheel; that wheel has a **back** button.
 - Each slice shows its **cooldown**, **charges / item count**, and is **grey** when unusable, **blue** without mana and **red** when your target is out of range.
 
+## `#showtooltip` macros
+A macro slot whose text starts with `#showtooltip Aimed Shot` (or just `#showtooltip`, meaning the first `/cast` or `/use`) shows that spell's icon, cooldown, charges, usable / range state and active-buff glow. Conditionals work and are evaluated live while the wheel is open, e.g. `#showtooltip [mod:shift] Hunter's Mark; Aimed Shot`. Remove the line to use your own icon.
+
 ## Setting up slots
 Open the editor (`/aw` or the minimap button), **Wheels** tab:
 - **Drag a spell** from your spellbook, an **item** from your bags or a **macro** onto a slot in the ring. This also works on the real wheel while it is open.

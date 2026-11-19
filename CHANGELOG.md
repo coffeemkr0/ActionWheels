@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.0
+- **`#showtooltip` for macro slots.** A macro slot whose text has `#showtooltip Spell` (or `/showtooltip`, or a bare `#showtooltip` meaning the first `/cast` or `/use`) now shows that spell's or item's icon, cooldown, charges, usable and range state, and the active-buff glow. Conditionals such as `#showtooltip [mod:shift] Spell A; Spell B` are evaluated live while the wheel is open. Remove the line to use a custom icon.
+
 ## 0.4.6
 - **Fix: the active-Aspect highlight reverting a few seconds into combat.** Once the game starts hiding buffs, "nothing found" was being read as "buff is off". In combat a lookup can now only confirm a buff; a buff is turned off only by a removal event for one we tracked, or by you casting another Aspect. Only one Aspect can be on at a time.
 - `/aw buffs` also prints the last buff changes and what caused each.

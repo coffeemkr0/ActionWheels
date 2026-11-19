@@ -274,6 +274,15 @@ end
 -- Live state: cooldown swirl, charges / item count, usable and range tinting
 ---------------------------------------------------------------------------
 local function Paint(b, slot)
+	-- a macro with #showtooltip shows (and tracks) the spell or item it points at; the target can
+	-- change while the wheel is open ([mod:shift] etc.), so the icon is re-checked every refresh
+	if slot.type == "macro" then
+		local v = AW.MacroTooltipSlot(slot.macrotext)
+		if not v then return end
+		local tex = AW.SlotIcon(slot)
+		if tex and b.iconTex ~= tex then b.icon:SetTexture(tex); b.iconTex = tex end
+		slot = v
+	end
 	local st = AW.SlotState(slot)
 	if st.cdSecret then
 		-- secret numbers: no comparing, just hand them to the swirl each refresh
@@ -315,7 +324,7 @@ function AW.RefreshStates()
 			if def then
 				for i = 1, def.slots do
 					local slot = def.items[i]
-					if not AW.IsEmpty(slot) and slot.type ~= "pet" and slot.type ~= "wheel" and slot.type ~= "macro" then
+					if not AW.IsEmpty(slot) and slot.type ~= "pet" and slot.type ~= "wheel" then
 						-- never let a display problem become an error message
 						pcall(Paint, page.slices[i], slot)
 					end
@@ -375,6 +384,7 @@ local function LayoutPage(page, id, k, count, targets)
 			b:ClearAllPoints()
 			b:SetPoint("CENTER", page, "CENTER", math.sin(a) * radius, math.cos(a) * radius)
 			local icon = AW.SlotIcon(slot)
+			b.iconTex = icon
 			if icon then
 				b.icon:SetTexture(icon)
 				b.icon:SetVertexColor(1, 1, 1)

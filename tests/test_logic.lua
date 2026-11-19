@@ -289,6 +289,34 @@ GetSpellInfo = function(id) return "Aimed Shot" end
 local rep = AW.BuffReport()
 eq(type(rep[1]), "string", "buff report lists slots")
 
+-- #showtooltip
+GetSpellInfo = function(n) if n == "Aimed Shot" or n == "Hunter's Mark" then return n end end
+local function mt(text) return AW.MacroTooltipSlot(text) end
+eq(mt("#showtooltip Aimed Shot\n/cast Aimed Shot").spell, "Aimed Shot", "#showtooltip Spell")
+eq(mt("/showtooltip Aimed Shot").spell, "Aimed Shot", "/showtooltip Spell")
+eq(mt("#showtooltip\n/cast [@focus] Hunter's Mark").spell, "Hunter's Mark", "bare #showtooltip uses the first /cast")
+eq(mt("#showtooltip [mod:shift] Hunter's Mark; Aimed Shot").spell, "Aimed Shot", "fallback picks the default clause")
+eq(mt("#showtooltip Hearthstone").item, "Hearthstone", "a non-spell is an item")
+eq(mt("#showtooltip !Aimed Shot (Rank 3)").spell, "Aimed Shot", "!, ranks stripped")
+eq(mt("/cast Aimed Shot"), nil, "no directive: nothing")
+eq(mt("#showtooltip\n/petattack"), nil, "bare directive with no cast")
+eq(mt("#showtooltip 13"), nil, "slot numbers unsupported")
+SecureCmdOptionParse = function(arg) if string.find(arg, "mod:shift") then return "Hunter's Mark" end return "Aimed Shot" end
+eq(mt("#showtooltip [mod:shift] Hunter's Mark; Aimed Shot").spell, "Hunter's Mark", "game parser evaluates conditionals")
+SecureCmdOptionParse = function() return nil end
+eq(mt("#showtooltip [combat] Aimed Shot"), nil, "no option matches: nothing")
+SecureCmdOptionParse = nil
+GetSpellTexture = function(n) return "Interface\\Icons\\Spell_" .. n end
+eq(AW.SlotIcon({ type = "macro", macrotext = "#showtooltip Aimed Shot\n/cast Aimed Shot", icon = 134400 }), "Interface\\Icons\\Spell_Aimed Shot", "macro icon follows #showtooltip")
+eq(AW.SlotIcon({ type = "macro", macrotext = "/cast Aimed Shot", icon = 134400 }), 134400, "macro without it keeps its own icon")
+GetSpellCooldown = function() return 100, 10, 1 end
+AW.Slash("reset")
+AW.P().wheels.main.items[1] = { type = "macro", macrotext = "#showtooltip Aimed Shot\n/cast Aimed Shot" }
+AW.ApplyLayout()
+_G.ActionWheelsPage1:Show()
+eq(pcall(AW.RefreshStates), true, "refresh handles #showtooltip macro slots")
+eq(_G.ActionWheelsP1S1.cdStart, 100, "the macro slice shows the cooldown of the spell it points at")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
