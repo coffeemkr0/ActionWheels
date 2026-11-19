@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.2
+- **Spell and item slices follow the live icon.** Like action-bar spell buttons, a slice re-reads its spell's icon while the wheel is open, so it changes when the game replaces or transforms the spell (override spells are resolved too). A slot with an icon you chose yourself keeps it.
+
 ## 0.5.1
 - **Active slices look like the built-in action bars.** A slice whose buff is on (for example your active Aspect) now gets the game's own gold "checked" highlight over the icon and a gold frame, instead of the green ring.
 

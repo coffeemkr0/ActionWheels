@@ -132,6 +132,8 @@ end
 
 AW.buffLog = {} -- last few state changes with their source, for /aw buffs
 
+AW.SpellIdOf = function(name) return try(spellIdOf, name) end
+
 local function remember(name, on, data, why)
 	if AW.buffCache[name] ~= on then
 		AW.buffLog[#AW.buffLog + 1] = string.format("%s -> %s (%s)", name, on and "on" or "off", why or "lookup")

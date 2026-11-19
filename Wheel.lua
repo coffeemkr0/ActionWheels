@@ -284,6 +284,14 @@ local function Paint(b, slot)
 		if tex and b.iconTex ~= tex then b.icon:SetTexture(tex); b.iconTex = tex end
 		slot = v
 	end
+	-- spell / item slices follow the live icon (a transformed spell changes it), like action bars do
+	if (slot.type == "spell" or slot.type == "item") and not (slot.icon and slot.icon ~= "") then
+		local ok, tex = pcall(AW.SlotIcon, slot)
+		if ok and tex ~= nil and not (issecretvalue and issecretvalue(tex)) and b.iconTex ~= tex then
+			b.icon:SetTexture(tex)
+			b.iconTex = tex
+		end
+	end
 	local st = AW.SlotState(slot)
 	if st.cdSecret then
 		-- secret numbers: no comparing, just hand them to the swirl each refresh

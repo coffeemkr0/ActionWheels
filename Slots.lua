@@ -165,8 +165,19 @@ function AW.SlotIcon(slot)
 	if slot.type == "wheel" then return "Interface\\Icons\\INV_Misc_Map_01" end
 	local tex
 	if slot.type == "spell" then
-		if C_Spell and C_Spell.GetSpellTexture then tex = C_Spell.GetSpellTexture(slot.spell)
-		elseif GetSpellTexture then tex = GetSpellTexture(slot.spell) end
+		-- follow the spell as the game sees it now: a replaced / transformed spell has another icon
+		local id = AW.SpellIdOf and AW.SpellIdOf(slot.spell)
+		if id and C_Spell and C_Spell.GetOverrideSpell and C_Spell.GetSpellTexture then
+			local ok, ov = pcall(C_Spell.GetOverrideSpell, id)
+			if ok and ov and ov ~= id then
+				local ok2, t = pcall(C_Spell.GetSpellTexture, ov)
+				if ok2 then tex = t end
+			end
+		end
+		if not tex then
+			if C_Spell and C_Spell.GetSpellTexture then tex = C_Spell.GetSpellTexture(slot.spell)
+			elseif GetSpellTexture then tex = GetSpellTexture(slot.spell) end
+		end
 	elseif slot.type == "item" then
 		if GetItemInfoInstant then
 			local _, _, _, _, icon = GetItemInfoInstant(slot.item)

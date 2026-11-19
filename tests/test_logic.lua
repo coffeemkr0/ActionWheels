@@ -317,6 +317,30 @@ _G.ActionWheelsPage1:Show()
 eq(pcall(AW.RefreshStates), true, "refresh handles #showtooltip macro slots")
 eq(_G.ActionWheelsP1S1.cdStart, 100, "the macro slice shows the cooldown of the spell it points at")
 
+-- icons follow the live spell
+AW.spellIdCache = {}
+C_Spell = {
+	GetSpellInfo = function(n) if n == "Base Spell" then return { spellID = 100 } end end,
+	GetOverrideSpell = function(id) if id == 100 then return 200 end return id end,
+	GetSpellTexture = function(id) return "tex" .. tostring(id) end,
+}
+eq(AW.SlotIcon({ type = "spell", spell = "Base Spell" }), "tex200", "override spell icon wins")
+C_Spell.GetOverrideSpell = function(id) return id end
+eq(AW.SlotIcon({ type = "spell", spell = "Base Spell" }), "texBase Spell", "no override: the spell's own icon")
+C_Spell = nil
+eq(AW.SlotIcon({ type = "spell", spell = "X", icon = "mine" }), "mine", "a chosen icon is kept")
+-- the slice re-reads its icon on refresh
+local cur = "iconA"
+GetSpellTexture = function() return cur end
+AW.Slash("reset")
+AW.Slash("set 1 spell Changer")
+_G.ActionWheelsPage1:Show()
+AW.RefreshStates()
+eq(_G.ActionWheelsP1S1.iconTex, "iconA", "slice shows the spell icon")
+cur = "iconB"
+AW.RefreshStates()
+eq(_G.ActionWheelsP1S1.iconTex, "iconB", "slice follows the spell when its icon changes")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
