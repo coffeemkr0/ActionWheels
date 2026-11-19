@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.1
+- **All Hunter Aspects share the active icon.** The starburst the bars show for an active Aspect is the same for every Aspect, so ActionWheels uses one icon for the whole family. It is built in (no learning step), and anything learned from your bars replaces it.
+
 ## 0.6.0
 - **Active spells show their active icon, with or without an action bar.** The game swaps an Aspect's action-bar picture while it is active (your inspect output: bar icon 136116 vs the normal 136076) but no spell lookup reports it. ActionWheels now learns that icon whenever it can see it (from the bar slot, or the buff's own icon, out of combat), saves it, and shows it while the spell is active - in combat and for spells that are on no bar. The first time you have an Aspect up out of combat, it learns that Aspect.
 - `/aw inspect` also shows the buff's icon and what has been learned.

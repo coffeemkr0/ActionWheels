@@ -397,12 +397,18 @@ C_ActionBar = {
 C_UnitAuras = { GetPlayerAuraBySpellID = function() if active then return { auraInstanceID = 5, icon = 136116 } end end }
 local hawk = { type = "spell", spell = "Aspect of the Hawk" }
 AW.SlotState(hawk)
-eq(AW.ActiveIcon("Aspect of the Hawk"), nil, "nothing learned while inactive")
-active, barTex = true, 136116
+eq(AW.ActiveIcon("Aspect of the Hawk"), 136116, "an Aspect has the built-in active icon before anything is learned")
+eq(AW.ActiveIcon("Aimed Shot"), nil, "other spells have none")
+eq(ActionWheelsDB.activeIcons, nil, "nothing learned while inactive")
+active, barTex = true, 777
 AW.SlotState(hawk)
-eq(AW.ActiveIcon("Aspect of the Hawk"), 136116, "active icon learned")
-eq(ActionWheelsDB.activeIcons["Aspect of the Hawk"].bar, 136116, "learned from the bar")
+eq(AW.ActiveIcon("Aspect of the Hawk"), 777, "active icon learned")
+eq(ActionWheelsDB.activeIcons["Aspect of the Hawk"].bar, 777, "learned from the bar")
+eq(AW.ActiveIcon("Aspect of the Monkey"), 777, "what one Aspect shows, all Aspects show")
 eq(ActionWheelsDB.activeIcons["Aspect of the Hawk"].aura, 136116, "and from the buff")
+ActionWheelsDB.activeIcons["Aspect of the Monkey"] = { bar = 555 }
+eq(AW.ActiveIcon("Aspect of the Monkey"), 555, "an Aspect's own learned icon beats the shared one")
+ActionWheelsDB.activeIcons["Aspect of the Monkey"] = nil
 -- the wheel shows it, even for a spell on no bar and in combat
 C_ActionBar, barTex = nil, 136076
 AW.actionSlots = {}
@@ -416,7 +422,7 @@ AW.ApplyLayout()
 _COMBAT = true
 _G.ActionWheelsPage1:Show()
 AW.RefreshStates()
-eq(_G.ActionWheelsP1S1.iconTex, 136116, "active spell shows the learned icon in combat with no bar")
+eq(_G.ActionWheelsP1S1.iconTex, 777, "active spell shows the learned icon in combat with no bar")
 AW.buffCache["Aspect of the Hawk"] = false
 AW.RefreshStates()
 eq(_G.ActionWheelsP1S1.iconTex, 136076, "back to the normal icon when it is not active")

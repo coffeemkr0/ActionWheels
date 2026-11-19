@@ -215,9 +215,20 @@ local function auraIconOf(name)
 end
 AW.AuraIconOf = auraIconOf
 
+-- Every Hunter Aspect shows the same starburst on the bars while it is active, so one icon serves
+-- the whole family. This is the one the game used when we looked; whatever we learn replaces it.
+AW.ASPECT_ACTIVE_ICON = 136116
+local ASPECT_GROUP = "@aspect"
+
 function AW.ActiveIcon(name)
-	local e = ActionWheelsDB and ActionWheelsDB.activeIcons and ActionWheelsDB.activeIcons[name]
-	return e and (e.bar or e.aura) or nil
+	local db = ActionWheelsDB and ActionWheelsDB.activeIcons
+	local e = db and db[name]
+	if e and (e.bar or e.aura) then return e.bar or e.aura end
+	if string.find(name, EXCLUSIVE) then
+		local g = db and db[ASPECT_GROUP]
+		return (g and (g.bar or g.aura)) or AW.ASPECT_ACTIVE_ICON
+	end
+	return nil
 end
 
 -- Call while the spell's buff is up and readable (out of combat).
@@ -231,6 +242,11 @@ function AW.LearnActiveIcon(name)
 			local e = ActionWheelsDB.activeIcons[name] or {}
 			ActionWheelsDB.activeIcons[name] = e
 			e[kind] = tex
+			if string.find(name, EXCLUSIVE) then -- what one Aspect shows, they all show
+				local g = ActionWheelsDB.activeIcons[ASPECT_GROUP] or {}
+				ActionWheelsDB.activeIcons[ASPECT_GROUP] = g
+				g[kind] = tex
+			end
 		end
 	end
 end
