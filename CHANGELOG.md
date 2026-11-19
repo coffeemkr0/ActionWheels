@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0
+- **Active spells show their active icon, with or without an action bar.** The game swaps an Aspect's action-bar picture while it is active (your inspect output: bar icon 136116 vs the normal 136076) but no spell lookup reports it. ActionWheels now learns that icon whenever it can see it (from the bar slot, or the buff's own icon, out of combat), saves it, and shows it while the spell is active - in combat and for spells that are on no bar. The first time you have an Aspect up out of combat, it learns that Aspect.
+- `/aw inspect` also shows the buff's icon and what has been learned.
+
 ## 0.5.4
 - `/aw inspect <spell>` prints what the game reports about a spell: its icon from each lookup, any override, whether it is active, and (if on a bar) the bar slot's icon and checked state. A diagnostic for icon mismatches.
 

@@ -179,6 +179,62 @@ function AW.ActionBarLook(name)
 	return tex, checked
 end
 
+---------------------------------------------------------------------------
+-- The icon a spell shows while it is ACTIVE (an Aspect's button changes picture on the bars, but
+-- the spell lookups keep reporting the normal icon). We learn it whenever it can be read - the
+-- action bar's own icon for the spell, or the buff's icon - save it, and use it later, in
+-- combat and for spells that are on no bar.
+---------------------------------------------------------------------------
+local function baseTexture(name)
+	if C_Spell and C_Spell.GetSpellTexture then return try(C_Spell.GetSpellTexture, name) end
+	if GetSpellTexture then return try(GetSpellTexture, name) end
+end
+
+local function auraIconOf(name)
+	local id = try(spellIdOf, name)
+	local function icon(d)
+		if type(d) ~= "table" or secret(d) then return nil end
+		local ok, ic = pcall(function() return d.icon end)
+		if ok and ic ~= nil and not secret(ic) then return ic end
+	end
+	if id and C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
+		local ic = icon(try(C_UnitAuras.GetPlayerAuraBySpellID, id))
+		if ic then return ic end
+	end
+	if C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName then
+		local ic = icon(try(C_UnitAuras.GetAuraDataBySpellName, "player", name, "HELPFUL"))
+		if ic then return ic end
+	end
+	if UnitAura then
+		for i = 1, 40 do
+			local ok, n, ic = pcall(UnitAura, "player", i, "HELPFUL")
+			if not ok or not n or secret(n) then break end
+			if n == name and ic ~= nil and not secret(ic) then return ic end
+		end
+	end
+end
+AW.AuraIconOf = auraIconOf
+
+function AW.ActiveIcon(name)
+	local e = ActionWheelsDB and ActionWheelsDB.activeIcons and ActionWheelsDB.activeIcons[name]
+	return e and (e.bar or e.aura) or nil
+end
+
+-- Call while the spell's buff is up and readable (out of combat).
+function AW.LearnActiveIcon(name)
+	if not ActionWheelsDB then return end
+	local base = baseTexture(name)
+	local found = { bar = (AW.ActionBarLook(name)), aura = auraIconOf(name) }
+	for kind, tex in pairs(found) do
+		if tex ~= nil and not secret(tex) and tex ~= base then -- the normal icon tells us nothing
+			ActionWheelsDB.activeIcons = ActionWheelsDB.activeIcons or {}
+			local e = ActionWheelsDB.activeIcons[name] or {}
+			ActionWheelsDB.activeIcons[name] = e
+			e[kind] = tex
+		end
+	end
+end
+
 local function remember(name, on, data, why)
 	if AW.buffCache[name] ~= on then
 		AW.buffLog[#AW.buffLog + 1] = string.format("%s -> %s (%s)", name, on and "on" or "off", why or "lookup")
@@ -252,7 +308,7 @@ function AW.UpdateBuffCache()
 	if AW.InCombat() then return end
 	for _, w in pairs(AW.P().wheels) do
 		for _, slot in pairs(w.items) do
-			if slot.type == "spell" and slot.spell then AW.IsBuffActive(slot.spell) end
+			if slot.type == "spell" and slot.spell and AW.IsBuffActive(slot.spell) then AW.LearnActiveIcon(slot.spell) end
 		end
 	end
 end
@@ -339,6 +395,7 @@ function AW.SlotState(slot)
 		st.active = AW.IsBuffActive(name) -- e.g. the Aspect you are in
 		local _, checked = AW.ActionBarLook(name)
 		if checked then st.active = true end -- the action bar says it is active
+		if st.active and not AW.InCombat() then AW.LearnActiveIcon(name) end
 	elseif slot.type == "item" and slot.item then
 		local name = slot.item
 		st.cdStart, st.cdDur = try(function() return itemCooldown(itemId(name)) end)
@@ -404,6 +461,12 @@ function AW.InspectSpell(name)
 	if id and C_Spell and C_Spell.IsCurrentSpell then add("IsCurrentSpell", C_Spell.IsCurrentSpell, id)
 	elseif id and IsCurrentSpell then add("IsCurrentSpell", IsCurrentSpell, id) end
 	out[#out + 1] = "buff: cache=" .. tostring(AW.buffCache[name]) .. " active=" .. tostring(AW.IsBuffActive(name))
+	do
+		local ai = auraIconOf(name)
+		local e = ActionWheelsDB and ActionWheelsDB.activeIcons and ActionWheelsDB.activeIcons[name]
+		out[#out + 1] = "buff icon now: " .. (ai ~= nil and tostring(ai) or "n/a") ..
+			"   learned active icon: bar=" .. tostring(e and e.bar) .. " aura=" .. tostring(e and e.aura)
+	end
 	local slot = findActionSlot(id)
 	if slot then
 		out[#out + 1] = "on action bar slot " .. tostring(slot)

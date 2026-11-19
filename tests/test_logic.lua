@@ -384,6 +384,55 @@ eq(string.find(joined, "GetSpellTexture(name): 333", 1, true) ~= nil, true, "ins
 AW.Slash("inspect Aspect of the Hawk")
 C_Spell = nil
 
+-- learning the icon a spell shows while active
+ActionWheelsDB.activeIcons = nil
+AW.actionSlots, AW.spellIdCache, AW.buffCache = {}, {}, {}
+local barTex, active = 136076, false
+C_Spell = { GetSpellInfo = function(n) return { spellID = 14319 } end, GetSpellTexture = function() return 136076 end }
+C_ActionBar = {
+	FindSpellActionButtons = function() return { 70 } end,
+	GetActionTexture = function() return barTex end,
+	IsCurrentAction = function() return false end,
+}
+C_UnitAuras = { GetPlayerAuraBySpellID = function() if active then return { auraInstanceID = 5, icon = 136116 } end end }
+local hawk = { type = "spell", spell = "Aspect of the Hawk" }
+AW.SlotState(hawk)
+eq(AW.ActiveIcon("Aspect of the Hawk"), nil, "nothing learned while inactive")
+active, barTex = true, 136116
+AW.SlotState(hawk)
+eq(AW.ActiveIcon("Aspect of the Hawk"), 136116, "active icon learned")
+eq(ActionWheelsDB.activeIcons["Aspect of the Hawk"].bar, 136116, "learned from the bar")
+eq(ActionWheelsDB.activeIcons["Aspect of the Hawk"].aura, 136116, "and from the buff")
+-- the wheel shows it, even for a spell on no bar and in combat
+C_ActionBar, barTex = nil, 136076
+AW.actionSlots = {}
+GetActionInfo = nil
+_COMBAT = true
+C_UnitAuras = nil
+AW.buffCache["Aspect of the Hawk"] = true
+AW.Slash("reset")
+AW.P().wheels.main.items[1] = { type = "spell", spell = "Aspect of the Hawk" }
+AW.ApplyLayout()
+_COMBAT = true
+_G.ActionWheelsPage1:Show()
+AW.RefreshStates()
+eq(_G.ActionWheelsP1S1.iconTex, 136116, "active spell shows the learned icon in combat with no bar")
+AW.buffCache["Aspect of the Hawk"] = false
+AW.RefreshStates()
+eq(_G.ActionWheelsP1S1.iconTex, 136076, "back to the normal icon when it is not active")
+_COMBAT = false
+-- never learn the normal icon, never in combat
+ActionWheelsDB.activeIcons = nil
+barTex = 136076
+C_ActionBar = { FindSpellActionButtons = function() return { 70 } end, GetActionTexture = function() return barTex end }
+AW.actionSlots = {}
+AW.buffCache["Aspect of the Hawk"] = true
+AW.LearnActiveIcon("Aspect of the Hawk")
+eq(ActionWheelsDB.activeIcons, nil, "the normal icon is not learned")
+C_Spell, C_ActionBar, C_UnitAuras = nil, nil, nil
+GetSpellTexture = function() return "x" end
+AW.actionSlots, AW.spellIdCache = {}, {}
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
