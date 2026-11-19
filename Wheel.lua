@@ -114,6 +114,18 @@ local function BuildSlice(page, i)
 	b.hl:SetTexture(TEX .. "Circle")
 	b.hl:SetVertexColor(0.2, 0.55, 1, 0.45)
 	b.hl:Hide()
+	-- press and click feedback: a dark "pushed" overlay while the mouse is down, a white flash on
+	-- release, a green flash when the cast is confirmed (see AW.FlashSlice)
+	b.push = b:CreateTexture(nil, "OVERLAY")
+	b.push:SetAllPoints(b)
+	b.push:SetTexture(TEX .. "Circle")
+	b.push:SetVertexColor(0, 0, 0, 0.5)
+	b.push:Hide()
+	b.flash = b:CreateTexture(nil, "OVERLAY", nil, 3)
+	b.flash:SetAllPoints(b)
+	b.flash:SetTexture(TEX .. "Circle")
+	b.flash:SetBlendMode("ADD")
+	b.flash:Hide()
 	b.count = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
 	b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -4, 6)
 	b:HookScript("OnEnter", function(self)
@@ -122,7 +134,12 @@ local function BuildSlice(page, i)
 		local def = p.wheels[self.page.wheelId]
 		self.page.name:SetText(AW.DescribeSlot(def and def.items[self.index]))
 	end)
+	b:HookScript("OnMouseDown", function(self, button)
+		if button == "LeftButton" then self.push:Show() end
+	end)
+	b:HookScript("OnMouseUp", function(self) self.push:Hide() end)
 	b:HookScript("OnLeave", function(self)
+		self.push:Hide()
 		self.hl:Hide()
 		local p = AW.P()
 		local def = p.wheels[self.page.wheelId]
@@ -138,16 +155,23 @@ local function BuildSlice(page, i)
 				": type=" .. tostring(self:GetAttribute("type")) .. " macro=" .. string.gsub(tostring(self:GetAttribute("macrotext")), "\n", " | ") ..
 				" -> wheel " .. (root:IsShown() and "still open" or "closed"))
 		end
-		-- remember which spell was clicked, to match the game's (possibly hidden) cast confirmation
 		if not down then
 			local def = AW.P().wheels[self.page.wheelId]
 			local slot = def and def.items[self.index]
-			if slot and slot.type == "spell" then AW.NoteClick(slot.spell) end
-		end
-		-- Plain-Lua close, runs after the action. Protected frames may only be hidden from Lua out of
-		-- combat; in combat the secure snippet below has to do it (or press the key again).
-		if not down and not self:GetAttribute("subwheel") and not InCombatLockdown() then
-			root:Hide()
+			AW.FlashSlice(self, 1, 1, 1) -- the click registered
+			local mode = AW.P().settings.closeMode
+			if slot and slot.type == "spell" then
+				-- remember which spell was clicked, to match the game's (possibly hidden) cast confirmation
+				AW.NoteClick(slot.spell)
+				if mode == "success" then AW.closeWatch = { name = slot.spell, t = GetTime(), slice = self } end
+			end
+			-- Plain-Lua close after the action, out of combat only (protected frames can't be hidden from
+			-- Lua in combat; the macro's /click ActionWheelsClose line does that there). A spell slice in
+			-- "success" mode closes when the cast is confirmed instead (State.lua / SliceConfirmed).
+			local waitsForCast = mode == "success" and slot and slot.type == "spell"
+			if mode ~= "never" and not waitsForCast and not self:GetAttribute("subwheel") and not InCombatLockdown() then
+				root:Hide()
+			end
 		end
 	end)
 	return b
@@ -260,10 +284,51 @@ local function Build()
 	-- keep the slice faces live while the wheel is open
 	local acc = 0
 	root:SetScript("OnUpdate", function(_, dt)
+		AW.AnimateFlashes()
 		acc = acc + (dt or 0)
 		if acc >= 0.1 then acc = 0; AW.RefreshStates() end
 	end)
 	root:SetScript("OnShow", function() AW.RefreshStates() end)
+end
+
+---------------------------------------------------------------------------
+-- Click feedback and closing
+---------------------------------------------------------------------------
+AW.flashing = {}
+local FLASH_TIME = 0.4
+
+function AW.FlashSlice(b, r, g, bl)
+	if not (b and b.flash) then return end
+	b.flash:SetVertexColor(r, g, bl)
+	b.flashT = GetTime()
+	b.flash:SetAlpha(0.8)
+	b.flash:Show()
+	AW.flashing[b] = true
+end
+
+function AW.AnimateFlashes()
+	if next(AW.flashing) == nil then return end
+	local now = GetTime()
+	for b in pairs(AW.flashing) do
+		local a = 1 - (now - (b.flashT or 0)) / FLASH_TIME
+		if a <= 0 then
+			b.flash:Hide()
+			AW.flashing[b] = nil
+		else
+			b.flash:SetAlpha(a * 0.8)
+		end
+	end
+end
+
+-- The cast we were waiting for went off: flash the slice green; close the wheel unless in combat
+-- (Lua can't hide it there - it stays open, close it with your key or by clicking outside).
+function AW.SliceConfirmed(b)
+	AW.FlashSlice(b, 0.3, 1, 0.4)
+	if not InCombatLockdown() and root then root:Hide() end
+end
+
+function AW.CloseWheel()
+	if root and not InCombatLockdown() then root:Hide() end
 end
 
 function AW.BuildWheel()
@@ -386,7 +451,7 @@ local function LayoutPage(page, id, k, count, targets)
 				-- the page name is "page<k>": switch with /click ActionWheelsGo<k>
 				for key, v in pairs(AW.SecureAttributes(slot, string.match(pageOf[slot.wheel], "%d+"))) do b:SetAttribute(key, v) end
 			else
-				for key, v in pairs(AW.SecureAttributes(slot)) do b:SetAttribute(key, v) end
+				for key, v in pairs(AW.SecureAttributes(slot, nil, S.closeMode)) do b:SetAttribute(key, v) end
 			end
 			b:SetWidth(btn)
 			b:SetHeight(btn)

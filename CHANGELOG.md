@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.0
+- **A spell slice stays open until the spell actually casts**, so you can keep clicking it when a cast gets blocked (auto-attack, global cooldown...). Out of combat the wheel closes once the cast is confirmed. In combat the game does not let an addon hide the wheel, so a spell slice stays open there: close it with your key or by clicking outside. Item, macro and pet slices still close on click.
+- New setting **After clicking a spell**: *Close when it casts* (default), *Close right away* (the old behaviour) or *Stay open*. Also `/aw close success|click|never`.
+- **Click feedback:** the slice darkens while the mouse is down, flashes white when the click registers and green when the cast is confirmed.
+
 ## 0.6.1
 - **All Hunter Aspects share the active icon.** The starburst the bars show for an active Aspect is the same for every Aspect, so ActionWheels uses one icon for the whole family. It is built in (no learning step), and anything learned from your bars replaces it.
 

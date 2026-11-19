@@ -8,6 +8,7 @@ AW.DEFAULT_SETTINGS = {
 	scale = 1,
 	radius = 105,         -- minimum ring radius (grows if the buttons need room)
 	buttonSize = 56,
+	closeMode = "success", -- after a click: "success" (spells stay open until they cast), "click", "never"
 }
 
 function AW.DefaultWheels()

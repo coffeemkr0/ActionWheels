@@ -14,7 +14,8 @@
 
 ## Using the wheel
 - **Open:** press your key. Toggle mode: press again to close. Hold mode: the wheel shows while the key is held (`Settings > Key behaviour`).
-- **Click a slice** to run it; the wheel then closes. Click outside the wheel to close it.
+- **Click a slice** to run it. Item, macro and pet slices close the wheel right away. A **spell** slice stays open until the spell actually casts (so you can keep clicking if the first try is blocked), then closes; in combat the game won't let an addon hide the wheel, so close it with your key or by clicking outside. Change this under Settings > *After clicking a spell* or `/aw close success|click|never`. The slice darkens while pressed, flashes white on click and green when the cast is confirmed.
+- Click outside the wheel to close it.
 - **More than one wheel:** use the `<` `>` arrows in the centre, or bind **Next wheel / Previous wheel**. A slot can open another wheel; that wheel has a **back** button.
 - Each slice shows its **cooldown**, **charges / item count**, and is **grey** when unusable, **blue** without mana and **red** when your target is out of range.
 

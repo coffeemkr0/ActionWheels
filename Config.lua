@@ -375,15 +375,17 @@ local function BuildSettingsTab(t)
 		function() return S().openMode end, function(v) S().openMode = v end, 190, 140)
 	Cycle(t, "Opens at", 20, -62, { { "cursor", "The mouse cursor" }, { "center", "Screen centre" } },
 		function() return S().openAt end, function(v) S().openAt = v end, 190, 140)
-	Text(t, "Look", 10, -104)
-	Slider(t, "Button size", 20, -136, 40, 110, 1, function() return S().buttonSize end, function(v) S().buttonSize = v end)
-	Slider(t, "Minimum ring radius", 20, -176, 70, 200, 1, function() return S().radius end, function(v) S().radius = v end)
-	Slider(t, "Whole wheel scale", 20, -216, 0.6, 2, 0.05, function() return S().scale end, function(v) S().scale = v end, "%.2f")
-	Text(t, "Other", 280, -104)
-	Check(t, "Show the minimap button", 276, -128,
+	Cycle(t, "After clicking a spell", 20, -92, { { "success", "Close when it casts" }, { "click", "Close right away" }, { "never", "Stay open" } },
+		function() return S().closeMode end, function(v) S().closeMode = v end, 190, 140)
+	Text(t, "Look", 10, -134)
+	Slider(t, "Button size", 20, -166, 40, 110, 1, function() return S().buttonSize end, function(v) S().buttonSize = v end)
+	Slider(t, "Minimum ring radius", 20, -206, 70, 200, 1, function() return S().radius end, function(v) S().radius = v end)
+	Slider(t, "Whole wheel scale", 20, -246, 0.6, 2, 0.05, function() return S().scale end, function(v) S().scale = v end, "%.2f")
+	Text(t, "Other", 280, -134)
+	Check(t, "Show the minimap button", 276, -158,
 		function() return not ActionWheelsDB.minimap.hide end,
 		function(v) ActionWheelsDB.minimap.hide = not v; AW.UpdateMinimap() end)
-	Check(t, "Separate wheels for this character", 276, -156,
+	Check(t, "Separate wheels for this character", 276, -186,
 		function() return AW.UsingCharProfile() end,
 		function(v)
 			if Locked() then return end
@@ -392,8 +394,8 @@ local function BuildSettingsTab(t)
 			sel = 1
 			RefreshAll()
 		end)
-	Button(t, "Key bindings...", 280, -196, 140, function() AW.OpenKeyBindings() end)
-	local reset = Button(t, "Restore starter wheel", 280, -226, 160, nil)
+	Button(t, "Key bindings...", 280, -226, 140, function() AW.OpenKeyBindings() end)
+	local reset = Button(t, "Restore starter wheel", 280, -256, 160, nil)
 	reset:SetScript("OnClick", function()
 		if Locked() then return end
 		if not reset.armed then
@@ -409,7 +411,7 @@ local function BuildSettingsTab(t)
 		sel = 1
 		RefreshAll()
 	end)
-	Text(t, "Wheels edited in the Wheels tab. Key: Esc > Key Bindings > AddOns > ActionWheels.", 10, -268, "GameFontHighlightSmall", 500)
+	Text(t, "Wheels edited in the Wheels tab. Key: Esc > Key Bindings > AddOns > ActionWheels.", 10, -296, "GameFontHighlightSmall", 500)
 end
 
 ---------------------------------------------------------------------------

@@ -69,6 +69,8 @@ end
 
 local function Sanitize(p)
 	fill(p.settings, AW.DEFAULT_SETTINGS)
+	local cm = p.settings.closeMode
+	if cm ~= "success" and cm ~= "click" and cm ~= "never" then p.settings.closeMode = "success" end
 	if not p.wheels[p.current] then p.current = p.order[1] end
 	for _, w in pairs(p.wheels) do
 		w.items = w.items or {}
@@ -243,7 +245,7 @@ local HELP = {
 	"/aw set <slot> wheel <name or number>  - a slot that opens another wheel",
 	"/aw wheels   /aw wheel new|select|rename|delete   (wheels you page through with the hub arrows)",
 	"/aw clear <slot>   /aw list   /aw slots <4-12>",
-	"/aw mode toggle|hold   /aw at cursor|center   /aw scale <0.5-2>",
+	"/aw mode toggle|hold   /aw at cursor|center   /aw scale <0.5-2>   /aw close success|click|never",
 	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
 	"/aw minimap   /aw keys   /aw buffs   /aw inspect <spell>   /aw debug   /aw reset   (restore the starter wheel)",
 	"/aw (no arguments) opens the settings window",
@@ -298,6 +300,12 @@ function AW.Slash(msg)
 		if rest ~= "toggle" and rest ~= "hold" then return AW.Print("Usage: /aw mode toggle|hold") end
 		p.settings.openMode = rest
 		return done(true, "open mode: " .. rest)
+	elseif cmd == "close" then
+		if rest ~= "success" and rest ~= "click" and rest ~= "never" then
+			return AW.Print("Usage: /aw close success|click|never  (success: a spell slice stays open until it casts)")
+		end
+		p.settings.closeMode = rest
+		return done(true, "after a click: " .. rest)
 	elseif cmd == "at" then
 		if rest ~= "cursor" and rest ~= "center" then return AW.Print("Usage: /aw at cursor|center") end
 		p.settings.openAt = rest

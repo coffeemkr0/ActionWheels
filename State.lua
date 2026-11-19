@@ -343,6 +343,12 @@ function AW.OnCastSucceeded(spellId)
 		local ok, n = pcall(AW.SpellName, spellId)
 		if ok then name = n end
 	end
+	-- a spell slice waiting to close (closeMode "success"): this cast confirms it
+	local w = AW.closeWatch
+	if w and GetTime() - w.t < 5 and (name == nil or name == w.name) then
+		AW.closeWatch = nil
+		if AW.SliceConfirmed then AW.SliceConfirmed(w.slice) end
+	end
 	local p = AW.pendingCast
 	if p and GetTime() - p.t < 1.5 then
 		-- an unreadable cast right after our click is that click's spell; a readable one must match

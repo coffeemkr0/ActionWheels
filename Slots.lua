@@ -64,7 +64,9 @@ end
 -- action even in combat. A sub-wheel slice (goPage = the target page number) /click's that page's
 -- ActionWheelsGo<k> button instead and leaves the wheel open.
 AW.CLOSE_LINE = "/click ActionWheelsClose"
-function AW.SecureAttributes(slot, goPage)
+-- closeMode: "click" (close after every click), "success" (default: a spell slice stays open until
+-- the cast succeeds, so you can keep clicking it; everything else closes on click) or "never".
+function AW.SecureAttributes(slot, goPage, closeMode)
 	if goPage then return { type = "macro", macrotext = "/click ActionWheelsGo" .. goPage } end
 	local a = AW.SlotAttributes(slot)
 	local body
@@ -72,7 +74,10 @@ function AW.SecureAttributes(slot, goPage)
 	elseif a.type == "item" then body = "/use " .. a.item
 	elseif a.type == "macro" then body = a.macrotext end
 	if not body then return {} end
-	return { type = "macro", macrotext = body .. "\n" .. AW.CLOSE_LINE }
+	local close = true
+	if closeMode == "never" then close = false
+	elseif closeMode == "success" and a.type == "spell" then close = false end
+	return { type = "macro", macrotext = close and (body .. "\n" .. AW.CLOSE_LINE) or body }
 end
 
 -- Short text for the hub and for /aw list.

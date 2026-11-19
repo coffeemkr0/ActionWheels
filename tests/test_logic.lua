@@ -74,8 +74,8 @@ eq(_G.ActionWheelsP1S4:GetAttribute("macrotext"), "/petpassive\n/click ActionWhe
 _COMBAT = false
 AW.OnEvent(nil, "PLAYER_REGEN_ENABLED")
 eq(AW.pendingApply, false, "layout applied when combat ends")
-eq(_G.ActionWheelsP1S4:GetAttribute("macrotext"), "/cast Multi-Shot\n/click ActionWheelsClose", "attribute applied after combat")
-eq(_G.ActionWheelsP1S1:GetAttribute("macrotext"), "/cast Aimed Shot\n/click ActionWheelsClose", "slice 1 changed to a spell, old macro replaced")
+eq(_G.ActionWheelsP1S4:GetAttribute("macrotext"), "/cast Multi-Shot", "attribute applied after combat")
+eq(_G.ActionWheelsP1S1:GetAttribute("macrotext"), "/cast Aimed Shot", "slice 1 changed to a spell, old macro replaced")
 eq(_G.ActionWheelsToggle:GetAttribute("mode"), "hold", "toggle button got the open mode")
 eq(ActionWheelsDB.profile.wheels.main.items[4].spell, "Multi-Shot", "deferred slot persisted")
 
@@ -439,6 +439,57 @@ C_Spell, C_ActionBar, C_UnitAuras = nil, nil, nil
 GetSpellTexture = function() return "x" end
 AW.actionSlots, AW.spellIdCache = {}, {}
 
+-- close behaviour after a click
+eq(AW.SecureAttributes({ type = "spell", spell = "X" }, nil, "success").macrotext, "/cast X", "success mode: a spell slice has no close line")
+eq(AW.SecureAttributes({ type = "spell", spell = "X" }, nil, "click").macrotext, "/cast X\n/click ActionWheelsClose", "click mode: closes right away")
+eq(AW.SecureAttributes({ type = "spell", spell = "X" }, nil, "never").macrotext, "/cast X", "never mode: no close line")
+eq(AW.SecureAttributes({ type = "item", item = "Y" }, nil, "success").macrotext, "/use Y\n/click ActionWheelsClose", "success mode: items still close on click")
+eq(AW.SecureAttributes({ type = "pet", pet = "attack" }, nil, "success").macrotext, "/petattack\n/click ActionWheelsClose", "success mode: pet commands still close on click")
+eq(AW.SecureAttributes({ type = "macro", macrotext = "/z" }, nil, "never").macrotext, "/z", "never mode: macros keep no close line")
+eq(AW.SecureAttributes({ type = "spell", spell = "X" }, "2", "never").macrotext, "/click ActionWheelsGo2", "sub-wheel slices are unaffected")
+AW.Slash("reset")
+eq(AW.P().settings.closeMode, "success", "default close mode")
+AW.Slash("close click")
+eq(AW.P().settings.closeMode, "click", "/aw close click")
+AW.Slash("close sideways")
+eq(AW.P().settings.closeMode, "click", "bad close mode rejected")
+AW.P().wheels.main.items[1] = { type = "spell", spell = "Aimed Shot" }
+AW.ApplyLayout()
+eq(_G.ActionWheelsP1S1:GetAttribute("macrotext"), "/cast Aimed Shot\n/click ActionWheelsClose", "layout follows the close mode")
+AW.Slash("close success")
+eq(_G.ActionWheelsP1S1:GetAttribute("macrotext"), "/cast Aimed Shot", "and changes with it")
+ActionWheelsDB.profile.settings.closeMode = "bogus"
+AW.InitDB()
+eq(AW.P().settings.closeMode, "success", "a bad saved close mode is repaired")
+
+-- click feedback and closing on a confirmed cast
+local sl = _G.ActionWheelsP1S1
+sl.flash = sl.flash or {}
+GetSpellInfo = function(id) return "Aimed Shot" end
+_COMBAT = false
+AW.closeWatch = { name = "Aimed Shot", t = 1000, slice = sl }
+_G.ActionWheelsRoot:Show()
+AW.OnEvent(nil, "UNIT_SPELLCAST_SUCCEEDED", "player", "g", 19434)
+eq(AW.closeWatch, nil, "a matching cast clears the watch")
+eq(_G.ActionWheelsRoot:IsShown(), false, "the wheel closes when the cast is confirmed out of combat")
+eq(AW.flashing[sl], true, "the slice flashes on success")
+AW.closeWatch = { name = "Multi-Shot", t = 1000, slice = sl }
+_G.ActionWheelsRoot:Show()
+AW.OnEvent(nil, "UNIT_SPELLCAST_SUCCEEDED", "player", "g", 19434) -- Aimed Shot, not ours
+eq(_G.ActionWheelsRoot:IsShown(), true, "another spell's cast does not close the wheel")
+_COMBAT = true
+AW.closeWatch = { name = "Aimed Shot", t = 1000, slice = sl }
+AW.OnEvent(nil, "UNIT_SPELLCAST_SUCCEEDED", "player", "g", 19434)
+eq(_G.ActionWheelsRoot:IsShown(), true, "in combat the wheel stays open (it can't be hidden from Lua)")
+eq(AW.closeWatch, nil, "but the confirmation is still noticed")
+_COMBAT = false
+_G.ActionWheelsRoot:Hide()
+AW.flashing = {}
+AW.FlashSlice(sl, 1, 1, 1)
+eq(AW.flashing[sl], true, "flash starts")
+AW.AnimateFlashes()
+eq(AW.flashing[sl], true, "flash still running right away")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
@@ -482,7 +533,7 @@ GetSpellInfo = function(id) return "Aimed Shot" end
 local cleared = _CLEARED
 eq(AW.DropOnSlot("main", 2), true, "drop onto a slot")
 eq(AW.P().wheels.main.items[2].spell, "Aimed Shot", "dropped spell stored")
-eq(_G.ActionWheelsP1S2:GetAttribute("macrotext"), "/cast Aimed Shot\n/click ActionWheelsClose", "dropped spell reaches the secure button")
+eq(_G.ActionWheelsP1S2:GetAttribute("macrotext"), "/cast Aimed Shot", "dropped spell reaches the secure button")
 eq(_CLEARED, cleared + 1, "cursor cleared after the drop")
 _COMBAT = true
 eq(AW.DropOnSlot("main", 3), false, "no drops in combat")
