@@ -119,6 +119,7 @@ function AW.SanitizeSlot(s)
 	o.label = str(s.label, 24)
 	o.icon = SanitizeIcon(s.icon)
 	if type(s.color) == "string" and AW.COLOR_RGB[s.color] then o.color = s.color end
+	if s.track == true and (o.type == "spell" or o.type == "macro") then o.track = true end
 	return o
 end
 

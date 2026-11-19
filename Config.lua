@@ -190,6 +190,7 @@ local function RefreshWheels()
 	end
 	LoadForm()
 	if frame.refreshColor then frame.refreshColor() end
+	if frame.refreshTrack then frame.refreshTrack() end
 end
 
 local function SelectSlot(i)
@@ -417,6 +418,21 @@ local function BuildWheelsTab(t)
 			sl.color = (v ~= "none") and v or nil
 		end, 80, 90)
 	frame.refreshColor = refreshers[#refreshers]
+	local trackCheck = Check(t, "On the cooldown strip", 304, -376,
+		function()
+			local _, _, def = Cur()
+			local sl = def.items[sel]
+			return sl and sl.track and true or false
+		end,
+		function(v)
+			if Locked() then return end
+			local _, _, def = Cur()
+			local sl = def.items[sel]
+			if not sl then return end
+			sl.track = v and true or nil
+			AW.TrackerRefresh()
+		end)
+	frame.refreshTrack = refreshers[#refreshers]
 	Button(t, "Swap <", 310, -350, 70, function()
 		if Locked() then return end
 		local _, id, def = Cur()
@@ -531,6 +547,36 @@ local function BuildLookTab(t)
 end
 
 ---------------------------------------------------------------------------
+-- Tracker tab: the on-screen cooldown strip
+---------------------------------------------------------------------------
+local function TR() return ActionWheelsDB.tracker end
+local function BuildTrackerTab(t)
+	Text(t, "Cooldown strip", 10, -8)
+	Text(t, "A small row of icons on screen, even with the wheel closed, that shows when your spells are ready again.", 20, -30, "GameFontHighlightSmall", 500)
+	Check(t, "Show the cooldown strip", 14, -60,
+		function() return not TR().hide end,
+		function(v) TR().hide = not v; AW.TrackerRefresh() end)
+	Check(t, "Add spells with long cooldowns automatically", 14, -86,
+		function() return TR().auto end,
+		function(v) TR().auto = v; AW.TrackerRefresh() end)
+	Slider(t, "Long means at least (seconds)", 40, -126, 10, 300, 5,
+		function() return TR().threshold end, function(v) TR().threshold = v end)
+	Slider(t, "Icon size", 40, -166, 24, 64, 1,
+		function() return TR().size end, function(v) TR().size = v end)
+	Cycle(t, "Grows to the", 30, -200, { { "right", "Right" }, { "down", "Down" }, { "left", "Left" }, { "up", "Up" } },
+		function() return TR().dir end, function(v) TR().dir = v; AW.TrackerRefresh() end, 110, 100)
+	Check(t, "Flash an icon when it is ready", 14, -234,
+		function() return TR().flash end, function(v) TR().flash = v end)
+	Check(t, "Play a sound when it is ready", 14, -260,
+		function() return TR().sound end, function(v) TR().sound = v end)
+	Check(t, "Unlock to move (drag the blue box)", 14, -286,
+		function() return not TR().locked end,
+		function(v) TR().locked = not v; AW.TrackerRefresh() end)
+	Button(t, "Reset position", 300, -288, 120, function() AW.TrackerResetPosition() end)
+	Text(t, "Always show a spell: tick \"On the cooldown strip\" on its slot in the Wheels tab. Spells with long cooldowns also appear while they cool down and for a few seconds after. Items are not tracked yet.", 20, -322, "GameFontHighlightSmall", 500)
+end
+
+---------------------------------------------------------------------------
 -- Share tab (import / export)
 ---------------------------------------------------------------------------
 local pendingImport
@@ -620,8 +666,8 @@ local function Build()
 	frame:Hide()
 	tinsert(UISpecialFrames, "ActionWheelsConfig")
 
-	local names = { "Wheels", "Settings", "Look", "Share" }
-	local builders = { BuildWheelsTab, BuildSettingsTab, BuildLookTab, BuildShareTab }
+	local names = { "Wheels", "Settings", "Look", "Tracker", "Share" }
+	local builders = { BuildWheelsTab, BuildSettingsTab, BuildLookTab, BuildTrackerTab, BuildShareTab }
 	for i, n in ipairs(names) do
 		local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 		b:SetWidth(92)

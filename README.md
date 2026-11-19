@@ -30,6 +30,13 @@ No keyboard needed. All of these work in combat:
 - **Where it opens:** a wheel opened from an **action bar** macro appears at the **screen centre** (the bar is at the screen edge); change it in Settings > *Action bar buttons open* or `/aw barat cursor|center`. The **on-screen buttons** follow the normal *Opens at* setting, so they open where you put them if that is set to the cursor.
 - Click outside the wheel, or the button again, to close it.
 
+## Cooldown strip: see when a spell is ready without opening the wheel
+A small row of icons on screen (the **Tracker** tab, or `/aw tracker`) shows your cooldowns even with the wheel closed:
+- **Always show a spell:** tick **On the cooldown strip** on its slot in the Wheels tab. It stays on screen, dimmed with a swirl and countdown while cooling down, and green-bordered when ready.
+- **Long cooldowns automatically:** with *Add spells with long cooldowns automatically* on, any spell on your wheels whose cooldown is at least the number of seconds you set (30 by default) appears while it cools down and for a few seconds after it is ready.
+- **Ready alert:** the icon flashes (and optionally plays a sound) when a spell comes off cooldown.
+- **Moving it:** tick *Unlock to move* (or `/aw tracker unlock`), drag the blue box, then lock it again. Choose the icon size and which way the row grows. It isn't clickable, and it works in combat. Items are not tracked yet.
+
 ## Editing on the wheel itself
 **Right-click a slice** (out of combat) for a small menu: **Edit slot...** (opens the editor on that slot), **Swap with another slot...** (then left-click the slot to swap with; right-click cancels; it works within one wheel) and **Clear slot**.
 
@@ -79,6 +86,7 @@ Spells, items and macros are protected in combat, so every slice is a secure act
 | The wheel opens half off-screen | Set *Opens at: Screen centre* (Settings), or place your open button away from the screen edge |
 | An action bar macro for a wheel opens the wrong one | `/click ActionWheelsOpen<n>` uses the wheel's position in the list; reordering or deleting wheels changes it. Press **Put on action bar** again |
 | **Put on action bar** says the macro list is full | Delete an unused macro, or type `/click ActionWheelsOpenLast` into a macro yourself |
+| A spell I expect is missing from the cooldown strip | Tick **On the cooldown strip** on its slot, or lower *Long means at least* in the Tracker tab. Spells with no reported cooldown length are only added after you have seen them cool down once |
 | I can't edit in combat | By design: editing and the settings window are locked in combat |
 | I want to start over | Settings > **Restore starter wheel** (or `/aw reset`) |
 | Something else looks wrong | `/aw debug` prints slice and click details; open an issue with what it prints |

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.0
+- **Cooldown strip.** A small on-screen row of icons, visible with the wheel closed, showing spell cooldowns with a swirl and countdown, and a flash (optionally a sound) when a spell is ready again. Tick **On the cooldown strip** on any spell slot to always show it; spells with long cooldowns (30 seconds by default, adjustable) are added automatically while they cool down. Movable, lockable, resizable, four growth directions; Tracker tab and `/aw tracker [lock|unlock|reset]`. It is not clickable, so it works in combat (cooldowns in combat use the game's duration objects). Spells only for now.
+
 ## 0.13.2
 - **Fix: spell cooldowns now show in combat.** In combat the game hides the cooldown numbers from addons, and passing them to the swirl did not work. ActionWheels now asks the game for a cooldown *duration object* and gives that to the swirl, which the game does allow. (Item cooldowns in combat still use the old way and may not show; `/aw debug` prints a "slice display problem" line if the game refuses anything.)
 

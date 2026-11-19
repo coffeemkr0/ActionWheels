@@ -1,6 +1,6 @@
 -- Run via tests/run_tests.py (Lua 5.1 through lupa). Run from the repo root.
 dofile("tests/wow_stubs.lua")
-for _, f in ipairs({ "Core", "Slots", "State", "Defaults", "Wheel", "Share", "Minimap", "Config" }) do
+for _, f in ipairs({ "Core", "Slots", "State", "Defaults", "Wheel", "Tracker", "Share", "Minimap", "Config" }) do
 	assert(loadfile(f .. ".lua"), f)()
 end
 local AW = ActionWheels
@@ -786,6 +786,88 @@ _COMBAT = false
 sl1.cd.SetCooldownFromDurationObject = nil
 C_Spell, issecretvalue = nil, nil
 AW.spellIdCache = {}
+
+-- ===== cooldown strip =====
+local savedCooldownStub = GetSpellCooldown
+AW.Slash("reset")
+local tr = ActionWheelsDB.tracker
+eq(tr.auto, true, "automatic tracking on by default"); eq(tr.threshold, 30, "30 s counts as long"); eq(tr.locked, true, "locked by default")
+AW.spellIdCache = {}
+C_Spell = { GetSpellInfo = function(n) return { spellID = ({ ["Trueshot"] = 1, ["Aimed Shot"] = 2, ["Kill Command"] = 3 })[n] } end }
+GetSpellBaseCooldown = function(id) return ({ [1] = 180000, [2] = 10000, [3] = 45000 })[id] or 0, 1500 end
+AW.P().wheels.main.items[1] = { type = "spell", spell = "Trueshot" }
+AW.P().wheels.main.items[2] = { type = "spell", spell = "Aimed Shot" }
+AW.P().wheels.main.items[3] = { type = "spell", spell = "Kill Command", track = true }
+AW.P().wheels.main.items[4] = { type = "macro", macrotext = "#showtooltip Trueshot\n/cast Trueshot" }
+local list = AW.TrackerCollect()
+local names = {}
+for _, e in ipairs(list) do names[e.name] = e end
+eq(names["Trueshot"] ~= nil, true, "a long-cooldown spell is picked up automatically")
+eq(names["Aimed Shot"], nil, "a short one is not")
+eq(names["Kill Command"].manual, true, "a ticked spell is always tracked")
+eq(#list, 2, "a macro pointing at an already tracked spell adds no duplicate")
+tr.auto = false
+list = AW.TrackerCollect()
+eq(#list, 1, "with automatic off only ticked spells remain"); eq(list[1].name, "Kill Command", "the ticked one")
+tr.auto = true; tr.threshold = 60
+list = AW.TrackerCollect()
+eq(#list, 2, "threshold 60: Trueshot (180) and the ticked Kill Command"); tr.threshold = 200
+list = AW.TrackerCollect()
+eq(#list, 1, "threshold 200: only the ticked one"); tr.threshold = 30
+-- learned cooldown lengths when the game gives no base cooldown
+GetSpellBaseCooldown = nil
+tr.learned = { Trueshot = 180 }
+eq(AW.TrackerBaseCooldown("Trueshot"), 180, "learned length used when the game does not say")
+eq(AW.TrackerBaseCooldown("Unknown"), 0, "unknown spells have none")
+tr.learned = {}
+-- visibility and ready transitions
+local manual = { name = "M", manual = true }
+local auto = { name = "A", manual = false }
+eq(AW.TrackerVisible(manual, false, 100), true, "manual entries are always visible")
+eq(AW.TrackerVisible(auto, false, 100), false, "automatic ones hide while ready")
+eq(AW.TrackerVisible(auto, true, 100), true, "and show while cooling down")
+eq(AW.TrackerVisible(auto, false, 103), true, "and stay visible for a few seconds once ready")
+eq(AW.TrackerVisible(auto, false, 120), false, "then disappear")
+eq(AW.TrackerTransition(auto, true), false, "starting a cooldown is not 'ready'")
+eq(AW.TrackerTransition(auto, true), false, "still running")
+eq(AW.TrackerTransition(auto, false), true, "finishing is 'ready' exactly once")
+eq(AW.TrackerTransition(auto, false), false, "and not again")
+-- the strip builds and updates; flashes on ready
+GetSpellBaseCooldown = function(id) return ({ [1] = 180000, [2] = 10000, [3] = 45000 })[id] or 0, 1500 end
+AW.TrackerRefresh()
+local running = true
+GetSpellCooldown = function() if running then return 100, 180, 1 end return 0, 0, 0 end
+AW.spellIdCache = {}
+AW.TrackerRefresh()
+AW.TrackerUpdate()
+eq(_G.ActionWheelsTrackerIcon1 ~= nil, true, "icons are created on demand")
+eq(_G.ActionWheelsTrackerIcon1:IsShown(), true, "a cooling spell is shown")
+eq(tr.learned["Trueshot"], 180, "a long cooldown seen out of combat is remembered")
+running = false
+AW.TrackerUpdate()
+eq(_G.ActionWheelsTrackerIcon1.flashT ~= nil, true, "the icon flashes when the spell is ready")
+tr.flash = false
+-- settings sanitising and slash
+tr.threshold, tr.size, tr.dir = 9999, 1, "sideways"
+AW.InitDB()
+eq(tr.threshold, 600, "threshold clamped"); eq(tr.size, 20, "size clamped"); eq(tr.dir, "right", "bad direction repaired")
+AW.Slash("tracker")
+eq(ActionWheelsDB.tracker.hide, true, "/aw tracker hides")
+AW.Slash("tracker")
+AW.Slash("tracker unlock")
+eq(ActionWheelsDB.tracker.locked, false, "unlock")
+AW.Slash("tracker lock")
+eq(ActionWheelsDB.tracker.locked, true, "lock")
+ActionWheelsDB.tracker.x, ActionWheelsDB.tracker.y = 50, 60
+AW.Slash("tracker reset")
+eq(ActionWheelsDB.tracker.x, nil, "reset forgets the position")
+-- import keeps the strip tick on spells only
+local timp = AW.PreviewImport(AW.Serialize({ v = 1, wheels = { { name = "T", slots = 4, items = { { type = "spell", spell = "X", track = true }, { type = "pet", pet = "attack", track = true } } } } }))
+eq(timp.wheels[1].items[1].track, true, "the strip tick survives an import for spells")
+eq(timp.wheels[1].items[2].track, nil, "but not for other slot types")
+GetSpellBaseCooldown, GetSpellCooldown, C_Spell = nil, savedCooldownStub, nil
+AW.spellIdCache = {}
+AW.Slash("reset")
 
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")

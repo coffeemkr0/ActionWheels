@@ -898,6 +898,7 @@ function AW.ApplyLayout()
 		if k > count then page.wheelId = nil; page:Hide() end
 	end
 
+	if AW.TrackerRefresh then AW.TrackerRefresh() end -- slots / wheels changed: re-pick the tracked spells
 	-- the wheel being edited opens first, unless an "auto" condition of another wheel holds
 	local home = pageOf[p.current] or pageName(1)
 	local clauses = {}

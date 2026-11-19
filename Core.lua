@@ -92,6 +92,13 @@ function AW.InitDB()
 	fill(ActionWheelsDB.minimap, { hide = false, angle = 215 })
 	ActionWheelsDB.launcher = ActionWheelsDB.launcher or {}
 	fill(ActionWheelsDB.launcher, { hide = true, locked = false })
+	ActionWheelsDB.tracker = ActionWheelsDB.tracker or {}
+	fill(ActionWheelsDB.tracker, { hide = false, locked = true, auto = true, threshold = 30, size = 36,
+		dir = "right", flash = true, sound = false, learned = {} })
+	local tr = ActionWheelsDB.tracker
+	tr.threshold = math.max(5, math.min(600, tonumber(tr.threshold) or 30))
+	tr.size = math.max(20, math.min(80, tonumber(tr.size) or 36))
+	if tr.dir ~= "right" and tr.dir ~= "down" and tr.dir ~= "left" and tr.dir ~= "up" then tr.dir = "right" end
 	Sanitize(ActionWheelsDB.profile)
 	ActionWheelsCharDB = ActionWheelsCharDB or {}
 	if ActionWheelsCharDB.profile then Sanitize(ActionWheelsCharDB.profile) end
@@ -308,6 +315,7 @@ AW.OnEvent = function(_, event, a1, a2, a3)
 		local now = GetTime()
 		if now - lastAura < 0.25 then return end
 		lastAura = now
+		if AW.BuildTracker then AW.BuildTracker() end
 		AW.UpdateBuffCache()
 	elseif event == "ACTIONBAR_SLOT_CHANGED" or event == "PLAYER_ENTERING_WORLD" or event == "SPELLS_CHANGED" then
 		AW.actionSlots = {}
@@ -355,7 +363,7 @@ local HELP = {
 	"/aw mode toggle|hold|auto   /aw at cursor|center   /aw scale <0.5-2>   /aw close success|click|never",
 	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
 	"/aw launcher [wheel|lock|unlock|reset]   (on-screen buttons: last wheel used / this wheel)",
-	"/aw open [first|last|<wheel>]   /aw swap <a> <b>   /aw sounds   /aw wheel move up|down|copy",
+	"/aw open [first|last|<wheel>]   /aw swap <a> <b>   /aw tracker [lock|unlock|reset]   /aw sounds   /aw wheel move up|down|copy",
 	"/aw macro [last|first|<wheel>]   makes an action-bar macro for a wheel and puts it on your cursor",
 	"/aw minimap   /aw keys   /aw buffs   /aw inspect <spell>   /aw debug   /aw reset   (restore the starter wheel)",
 	"/aw (no arguments) opens the settings window",
@@ -536,6 +544,21 @@ function AW.Slash(msg)
 		return done(true, "swapped slots " .. a .. " and " .. b)
 	elseif cmd == "open" then
 		AW.OpenWheel(rest)
+	elseif cmd == "tracker" then
+		local tr = ActionWheelsDB.tracker
+		if rest == "lock" or rest == "unlock" then
+			tr.locked = (rest == "lock")
+			AW.TrackerRefresh()
+			return AW.Print("cooldown strip " .. (tr.locked and "locked" or "unlocked: drag the blue box to move it"))
+		elseif rest == "reset" then
+			AW.TrackerResetPosition()
+			return AW.Print("cooldown strip moved back to its start position")
+		else
+			tr.hide = not tr.hide
+			AW.TrackerRefresh()
+			if AW.RefreshConfig then AW.RefreshConfig() end
+			return AW.Print("cooldown strip " .. (tr.hide and "hidden" or "shown"))
+		end
 	elseif cmd == "sounds" then
 		p.settings.sounds = not p.settings.sounds
 		return AW.Print("sounds " .. (p.settings.sounds and "on" or "off"))
