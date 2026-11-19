@@ -69,6 +69,7 @@ end
 
 local function Sanitize(p)
 	fill(p.settings, AW.DEFAULT_SETTINGS)
+	if p.settings.barOpenAt ~= "cursor" and p.settings.barOpenAt ~= "center" then p.settings.barOpenAt = "center" end
 	local om = p.settings.openMode
 	if om ~= "toggle" and om ~= "hold" and om ~= "auto" then p.settings.openMode = "toggle" end
 	if p.settings.openFirst ~= "selected" and p.settings.openFirst ~= "last" then p.settings.openFirst = "selected" end
@@ -350,6 +351,7 @@ local HELP = {
 	"/aw wheels   /aw wheel new|select|rename|delete   (wheels you page through with the hub arrows)",
 	"/aw clear <slot>   /aw list   /aw slots <4-12>",
 	"/aw opens selected|last   /aw scroll on|off|reverse   (which wheel the key opens / mouse wheel paging)",
+	"/aw barat cursor|center   (where action bar buttons open the wheel)",
 	"/aw mode toggle|hold|auto   /aw at cursor|center   /aw scale <0.5-2>   /aw close success|click|never",
 	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
 	"/aw launcher [wheel|lock|unlock|reset]   (on-screen buttons: last wheel used / this wheel)",
@@ -425,6 +427,10 @@ function AW.Slash(msg)
 			return done(true, "mouse wheel switching wheels: " .. rest)
 		end
 		return AW.Print("Usage: /aw scroll on|off|reverse  (mouse wheel switches wheels while the wheel is open)")
+	elseif cmd == "barat" then
+		if rest ~= "cursor" and rest ~= "center" then return AW.Print("Usage: /aw barat cursor|center  (where a wheel opened from an action bar button appears)") end
+		p.settings.barOpenAt = rest
+		return done(true, "a wheel opened from an action bar button appears at the " .. rest)
 	elseif cmd == "close" then
 		if rest ~= "success" and rest ~= "click" and rest ~= "never" then
 			return AW.Print("Usage: /aw close success|click|never  (success: a spell slice stays open until it casts)")

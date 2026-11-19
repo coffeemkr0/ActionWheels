@@ -460,6 +460,8 @@ local function BuildSettingsTab(t)
 		function() return S().closeMode end, function(v) S().closeMode = v end, 190, 140)
 	Cycle(t, "The key opens", 20, -122, { { "selected", "The wheel I'm editing" }, { "last", "The last wheel I used" } },
 		function() return S().openFirst end, function(v) S().openFirst = v end, 190, 140)
+	Cycle(t, "Action bar buttons open", 20, -216, { { "center", "At the screen centre" }, { "cursor", "At the mouse cursor" } },
+		function() return S().barOpenAt end, function(v) S().barOpenAt = v end, 190, 140)
 	Check(t, "Mouse wheel switches wheels", 14, -160,
 		function() return S().wheelScroll end,
 		function(v) if Locked() then return end S().wheelScroll = v; OnChanged() end)

@@ -5,6 +5,7 @@ local AW = ActionWheels
 AW.DEFAULT_SETTINGS = {
 	openMode = "toggle",  -- "toggle" (press to open, press again to close) or "hold" (open while the key is held)
 	openAt = "cursor",    -- "cursor" or "center"
+	barOpenAt = "center", -- where a wheel opened from an ACTION BAR button appears (the bar is at the screen edge)
 	scale = 1,
 	radius = 105,         -- minimum ring radius (grows if the buttons need room)
 	buttonSize = 56,

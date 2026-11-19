@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.1
+- **A wheel opened from an action bar button now opens at the screen centre** (the bar sits at the screen edge, so opening at the cursor pushed it off-screen). Setting: Settings > *Action bar buttons open*, or `/aw barat cursor|center`. The on-screen buttons still follow *Opens at*.
+
 ## 0.13.0
 Ideas taken from ReactWheel:
 - **Right-click a slice on the wheel** for *Edit slot...*, *Swap with another slot...* and *Clear slot* (out of combat).

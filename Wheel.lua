@@ -381,6 +381,7 @@ local function MakeOpener(name, target)
 	b:SetAttribute("target", target)
 	b:SetAttribute("at", "cursor")
 	b:SetAttribute("_onclick", OPEN_SNIPPET)
+	b.isLauncher = false
 	openers[#openers + 1] = b
 	return b
 end
@@ -399,6 +400,7 @@ end
 local function BuildLauncher(name, target, key)
 	local b = MakeOpener(name, target)
 	b.key = key
+	b.isLauncher = true -- an on-screen button (follows "opens at"); the plain openers are for action bars
 	b:SetWidth(44)
 	b:SetHeight(44)
 	b:SetFrameStrata("MEDIUM")
@@ -867,7 +869,10 @@ function AW.ApplyLayout()
 	root:SetAttribute("wheelscroll", S.wheelScroll and 1 or 0)
 	root:SetAttribute("wheelrev", S.wheelReverse and 1 or 0)
 	catcher:EnableMouseWheel(S.wheelScroll and true or false) -- off: the wheel passes through (camera zoom)
-	for _, o in ipairs(openers) do o:SetAttribute("at", S.openAt or "cursor") end
+	-- on-screen buttons follow "opens at"; action bar macros default to the screen centre
+	for _, o in ipairs(openers) do
+		o:SetAttribute("at", o.isLauncher and (S.openAt or "cursor") or (S.barOpenAt or "center"))
+	end
 	AW.PlaceLaunchers()
 
 	-- wheel id -> page, and which wheels some slot links to (those get a "back" button)
