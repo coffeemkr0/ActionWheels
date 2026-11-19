@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.10.0
+- **Open the wheel with the mouse.** `/click ActionWheelsOpen` in a macro on any action bar opens the wheel (and `ActionWheelsOpen2` ... `8` open that wheel directly). An optional **on-screen button** (`/aw launcher` or Settings) does the same and can be moved with Shift + drag and locked. Both are secure click handlers, so they work in combat, and they act once per click whether the client sends a press, a release or both.
+
 ## 0.9.0
 - **Auto key behaviour.** One keybind that acts as *hold to show* in combat and *press to open / press to close* out of combat. Choose it in Settings > Key behaviour, or `/aw mode auto`. The switch follows the game's combat state through a secure state driver, so it works without any addon code running in combat.
 

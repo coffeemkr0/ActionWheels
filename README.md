@@ -19,6 +19,12 @@
 - **More than one wheel:** use the `<` `>` arrows in the centre, or bind **Next wheel / Previous wheel**. A slot can open another wheel; that wheel has a **back** button.
 - Each slice shows its **cooldown**, **charges / item count**, and is **grey** when unusable, **blue** without mana and **red** when your target is out of range.
 
+## Opening the wheel with the mouse
+No need for the keyboard:
+- **From an action bar:** make a macro with `/click ActionWheelsOpen` and put it on any bar. Clicking it opens the wheel at your cursor. `/click ActionWheelsOpen2` (3, 4... up to 8) opens that wheel directly.
+- **On-screen button:** `/aw launcher` (or Settings) shows a small button you can click. Shift + drag moves it; `/aw launcher lock` fixes it in place.
+- These work in combat. Click outside the wheel, or the button again, to close it. Set *Opens at: Screen centre* in Settings if a button near the screen edge would push the wheel off-screen.
+
 ## `#showtooltip` macros
 A macro slot whose text starts with `#showtooltip Aimed Shot` (or just `#showtooltip`, meaning the first `/cast` or `/use`) shows that spell's icon, cooldown, charges, usable / range state and active-buff glow. Conditionals work and are evaluated live while the wheel is open, e.g. `#showtooltip [mod:shift] Hunter's Mark; Aimed Shot`. Remove the line to use your own icon.
 

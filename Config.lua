@@ -392,8 +392,18 @@ local function BuildSettingsTab(t)
 			sel = 1
 			RefreshAll()
 		end)
-	Button(t, "Key bindings...", 280, -226, 140, function() AW.OpenKeyBindings() end)
-	local reset = Button(t, "Restore starter wheel", 280, -256, 160, nil)
+	Check(t, "Show an on-screen open button", 276, -216,
+		function() return not ActionWheelsDB.launcher.hide end,
+		function(v)
+			if Locked() then return end
+			ActionWheelsDB.launcher.hide = not v
+			AW.PlaceLauncher()
+		end)
+	Check(t, "Lock its position (Shift+drag moves)", 276, -242,
+		function() return ActionWheelsDB.launcher.locked end,
+		function(v) ActionWheelsDB.launcher.locked = v end)
+	Button(t, "Key bindings...", 280, -276, 140, function() AW.OpenKeyBindings() end)
+	local reset = Button(t, "Restore starter wheel", 280, -306, 160, nil)
 	reset:SetScript("OnClick", function()
 		if Locked() then return end
 		if not reset.armed then
@@ -409,7 +419,17 @@ local function BuildSettingsTab(t)
 		sel = 1
 		RefreshAll()
 	end)
-	Text(t, "Wheels edited in the Wheels tab. Key: Esc > Key Bindings > AddOns > ActionWheels.", 10, -296, "GameFontHighlightSmall", 500)
+	Text(t, "Open from an action bar: make a macro with", 10, -318, "GameFontNormalSmall")
+	local mac = CreateFrame("EditBox", nil, t, "InputBoxTemplate")
+	mac:SetWidth(200)
+	mac:SetHeight(20)
+	mac:SetPoint("TOPLEFT", t, "TOPLEFT", 16, -334)
+	mac:SetAutoFocus(false)
+	mac:SetText("/click ActionWheelsOpen")
+	mac:SetScript("OnEditFocusLost", function() mac:SetText("/click ActionWheelsOpen") end)
+	mac:SetScript("OnEscapePressed", function() mac:ClearFocus() end)
+	Text(t, "and put it on a bar. (ActionWheelsOpen2, 3... open a specific wheel.)", 224, -338, "GameFontHighlightSmall", 300)
+	Text(t, "Wheels edited in the Wheels tab. Key: Esc > Key Bindings > AddOns > ActionWheels.", 10, -366, "GameFontHighlightSmall", 500)
 end
 
 ---------------------------------------------------------------------------

@@ -86,6 +86,8 @@ function AW.InitDB()
 	ActionWheelsDB.version = AW.DB_VERSION
 	ActionWheelsDB.minimap = ActionWheelsDB.minimap or {}
 	fill(ActionWheelsDB.minimap, { hide = false, angle = 215 })
+	ActionWheelsDB.launcher = ActionWheelsDB.launcher or {}
+	fill(ActionWheelsDB.launcher, { hide = true, locked = false })
 	Sanitize(ActionWheelsDB.profile)
 	ActionWheelsCharDB = ActionWheelsCharDB or {}
 	if ActionWheelsCharDB.profile then Sanitize(ActionWheelsCharDB.profile) end
@@ -249,6 +251,8 @@ local HELP = {
 	"/aw clear <slot>   /aw list   /aw slots <4-12>",
 	"/aw mode toggle|hold|auto   /aw at cursor|center   /aw scale <0.5-2>   /aw close success|click|never",
 	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
+	"/aw launcher [lock|unlock|reset]   (small on-screen button that opens the wheel)",
+	"/click ActionWheelsOpen   in a macro on an action bar opens the wheel (…Open2 = 2nd wheel)",
 	"/aw minimap   /aw keys   /aw buffs   /aw inspect <spell>   /aw debug   /aw reset   (restore the starter wheel)",
 	"/aw (no arguments) opens the settings window",
 }
@@ -369,6 +373,20 @@ function AW.Slash(msg)
 	elseif cmd == "inspect" then
 		if rest == "" then return AW.Print("Usage: /aw inspect <spell name>") end
 		for _, line in ipairs(AW.InspectSpell(rest)) do AW.Print(line) end
+	elseif cmd == "launcher" then
+		local L = ActionWheelsDB.launcher
+		if rest == "lock" or rest == "unlock" then
+			L.locked = (rest == "lock")
+			return AW.Print("launcher " .. (L.locked and "locked" or "unlocked: Shift + drag to move it"))
+		elseif rest == "reset" then
+			L.x, L.y = nil, nil
+		else
+			L.hide = not L.hide
+		end
+		if AW.InCombat() then AW.pendingApply = true return AW.Print("The launcher will update when combat ends.") end
+		AW.PlaceLauncher()
+		if AW.RefreshConfig then AW.RefreshConfig() end
+		return AW.Print("on-screen button " .. (L.hide and "hidden" or "shown (Shift + drag to move, /aw launcher lock to fix it)"))
 	elseif cmd == "keys" then
 		AW.OpenKeyBindings()
 	elseif cmd == "" or cmd == "config" then

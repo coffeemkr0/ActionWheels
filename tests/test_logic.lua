@@ -532,6 +532,36 @@ AW.InitDB()
 eq(AW.P().settings.openMode, "toggle", "a bad saved mode is repaired")
 AW.Slash("mode toggle")
 
+-- mouse openers
+eq(_G.ActionWheelsOpen ~= nil, true, "macro opener exists")
+eq(_G.ActionWheelsOpen2:GetAttribute("target"), "page2", "numbered opener targets that wheel")
+eq(_G.ActionWheelsOpen:GetAttribute("target"), nil, "plain opener opens the first wheel")
+eq(_G.ActionWheelsLauncher ~= nil, true, "launcher exists")
+eq(type(_G.ActionWheelsOpen:GetAttribute("_onclick")), "string", "opener has a click handler")
+AW.Slash("at center")
+eq(_G.ActionWheelsOpen:GetAttribute("at"), "center", "openers follow the open position setting")
+eq(_G.ActionWheelsLauncher:GetAttribute("at"), "center", "so does the launcher")
+AW.Slash("at cursor")
+AW.Slash("launcher")
+eq(ActionWheelsDB.launcher.hide, false, "/aw launcher shows the button")
+eq(_G.ActionWheelsLauncher:IsShown(), true, "the launcher is visible")
+AW.Slash("launcher lock")
+eq(ActionWheelsDB.launcher.locked, true, "lock")
+AW.Slash("launcher unlock")
+eq(ActionWheelsDB.launcher.locked, false, "unlock")
+ActionWheelsDB.launcher.x, ActionWheelsDB.launcher.y = 300, 200
+AW.Slash("launcher reset")
+eq(ActionWheelsDB.launcher.x, nil, "reset forgets the position")
+AW.Slash("launcher")
+eq(_G.ActionWheelsLauncher:IsShown(), false, "toggled off again")
+_COMBAT = true
+AW.Slash("launcher")
+eq(AW.pendingApply, true, "in combat the launcher change waits")
+_COMBAT = false
+AW.OnEvent(nil, "PLAYER_REGEN_ENABLED")
+eq(_G.ActionWheelsLauncher:IsShown(), true, "and applies after combat")
+AW.Slash("launcher")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
