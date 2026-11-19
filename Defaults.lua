@@ -14,6 +14,7 @@ AW.DEFAULT_SETTINGS = {
 	wheelReverse = false,   -- reverse the scroll direction
 	fontScale = 1,          -- size of the text on the wheel (0.7-2.5)
 	hubScale = 1,           -- size of the centre hub and its controls (0.8-2.5)
+	tooltips = true,        -- show a tooltip when hovering a slice
 	sounds = false,         -- soft tick moving between slices, click on use
 	closeMode = "success", -- after a click: "success" (spells stay open until they cast), "click", "never"
 }

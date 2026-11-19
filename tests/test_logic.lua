@@ -869,6 +869,57 @@ GetSpellBaseCooldown, GetSpellCooldown, C_Spell = nil, savedCooldownStub, nil
 AW.spellIdCache = {}
 AW.Slash("reset")
 
+-- tooltips
+AW.Slash("reset")
+AW.spellIdCache = {}
+local tipLog = {}
+local realTip = GameTooltip
+GameTooltip = setmetatable({}, { __index = function(_, k) return function() end end })
+GameTooltip.SetOwner = function(self, owner, anchor) tipLog[#tipLog + 1] = "owner" end
+GameTooltip.ClearLines = function() tipLog[#tipLog + 1] = "clear" end
+GameTooltip.AddLine = function(self, text) tipLog[#tipLog + 1] = "line:" .. tostring(text) end
+GameTooltip.Show = function() tipLog[#tipLog + 1] = "show" end
+GameTooltip.Hide = function() tipLog[#tipLog + 1] = "hide" end
+local setSpell, setItem, lines = nil, nil, 0
+GameTooltip.SetSpellByID = function(self, id) setSpell = id; lines = 3 end
+GameTooltip.SetItemByID = function(self, id) setItem = id; lines = 3 end
+GameTooltip.NumLines = function() return lines end
+C_Spell = { GetSpellInfo = function(n) return { spellID = 4242 } end }
+GetItemInfoInstant = function() return 6948 end
+AW.P().wheels.main.items[1] = { type = "spell", spell = "Aimed Shot" }
+AW.P().wheels.main.items[2] = { type = "item", item = "Hearthstone" }
+AW.P().wheels.main.items[3] = { type = "macro", macrotext = "#showtooltip Aimed Shot\n/cast Aimed Shot" }
+AW.P().wheels.main.items[4] = { type = "macro", macrotext = "/dismount\n/leavevehicle", label = "Dismount" }
+AW.P().wheels.main.items[5] = { type = "pet", pet = "attack" }
+AW.ApplyLayout()
+GetSpellInfo = function(n) return n end
+local function hover(i) tipLog = {}; setSpell, setItem, lines = nil, nil, 0; AW.ShowSlotTooltip(_G["ActionWheelsP1S" .. i]) end
+hover(1); eq(setSpell, 4242, "a spell slice shows the game's spell tooltip")
+hover(2); eq(setItem, 6948, "an item slice shows the game's item tooltip")
+setSpell = nil; hover(3); eq(setSpell, 4242, "a #showtooltip macro shows the tooltip of its spell")
+hover(4)
+eq(table.concat(tipLog, "|"), "owner|clear|line:Dismount|line:/dismount|line:/leavevehicle|show", "a macro lists its lines")
+hover(5)
+eq(table.concat(tipLog, "|"), "owner|clear|line:Pet: attack|line:Pet command|show", "a pet command is described")
+AW.P().wheels.main.items[6] = { type = "wheel", wheel = "w9" } -- dangling link: no crash
+AW.ApplyLayout()
+hover(6)
+AW.P().wheels.main.items[8] = nil
+AW.ApplyLayout()
+hover(8) -- an empty slot: no tooltip
+eq(#tipLog, 0, "empty slots show nothing")
+GameTooltip.SetSpellByID = function() error("refused") end
+hover(1)
+eq(tipLog[#tipLog], "show", "a refused spell tooltip falls back to a description")
+AW.Slash("tooltips")
+eq(AW.P().settings.tooltips, false, "/aw tooltips turns them off")
+hover(1)
+eq(#tipLog, 0, "no tooltip when off")
+AW.Slash("tooltips")
+GameTooltip, C_Spell, GetSpellInfo, GetItemInfoInstant = realTip, nil, nil, nil
+AW.spellIdCache = {}
+AW.Slash("reset")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")

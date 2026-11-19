@@ -363,7 +363,7 @@ local HELP = {
 	"/aw mode toggle|hold|auto   /aw at cursor|center   /aw scale <0.5-2>   /aw close success|click|never",
 	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
 	"/aw launcher [wheel|lock|unlock|reset]   (on-screen buttons: last wheel used / this wheel)",
-	"/aw open [first|last|<wheel>]   /aw swap <a> <b>   /aw tracker [lock|unlock|reset]   /aw sounds   /aw wheel move up|down|copy",
+	"/aw open [first|last|<wheel>]   /aw swap <a> <b>   /aw tracker [lock|unlock|reset]   /aw tooltips   /aw sounds   /aw wheel move up|down|copy",
 	"/aw macro [last|first|<wheel>]   makes an action-bar macro for a wheel and puts it on your cursor",
 	"/aw minimap   /aw keys   /aw buffs   /aw inspect <spell>   /aw debug   /aw reset   (restore the starter wheel)",
 	"/aw (no arguments) opens the settings window",
@@ -559,6 +559,9 @@ function AW.Slash(msg)
 			if AW.RefreshConfig then AW.RefreshConfig() end
 			return AW.Print("cooldown strip " .. (tr.hide and "hidden" or "shown"))
 		end
+	elseif cmd == "tooltips" then
+		p.settings.tooltips = not (p.settings.tooltips ~= false)
+		return AW.Print("tooltips " .. (p.settings.tooltips and "on" or "off"))
 	elseif cmd == "sounds" then
 		p.settings.sounds = not p.settings.sounds
 		return AW.Print("sounds " .. (p.settings.sounds and "on" or "off"))

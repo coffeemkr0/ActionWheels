@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.1
+- **Tooltips on the wheel.** Hovering a slice shows the game's own tooltip for a spell or item (a `#showtooltip` macro shows the tooltip of the spell it points at). Macros list their lines, and pet commands and sub-wheel links get a short description. Turn them off in Look > *Show tooltips when hovering a slot* or with `/aw tooltips`.
+
 ## 0.14.0
 - **Cooldown strip.** A small on-screen row of icons, visible with the wheel closed, showing spell cooldowns with a swirl and countdown, and a flash (optionally a sound) when a spell is ready again. Tick **On the cooldown strip** on any spell slot to always show it; spells with long cooldowns (30 seconds by default, adjustable) are added automatically while they cool down. Movable, lockable, resizable, four growth directions; Tracker tab and `/aw tracker [lock|unlock|reset]`. It is not clickable, so it works in combat (cooldowns in combat use the game's duration objects). Spells only for now.
 

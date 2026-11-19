@@ -541,9 +541,11 @@ local function BuildLookTab(t)
 	Slider(t, "Whole wheel scale", 20, -120, 0.6, 2, 0.05, function() return S().scale end, function(v) S().scale = v end, "%.2f")
 	Slider(t, "Text size", 20, -160, 0.7, 2.5, 0.1, function() return S().fontScale end, function(v) S().fontScale = v end, "%.1f")
 	Slider(t, "Centre controls size", 20, -200, 0.8, 2.5, 0.1, function() return S().hubScale end, function(v) S().hubScale = v end, "%.1f")
+	Check(t, "Show tooltips when hovering a slot", 14, -266,
+		function() return S().tooltips ~= false end, function(v) if Locked() then return end S().tooltips = v end)
 	Check(t, "Play sounds (a soft tick between slices, a click on use)", 14, -240,
 		function() return S().sounds end, function(v) if Locked() then return end S().sounds = v end)
-	Text(t, "The ring grows by itself when the buttons need more room.", 20, -276, "GameFontHighlightSmall", 480)
+	Text(t, "The ring grows by itself when the buttons need more room.", 20, -300, "GameFontHighlightSmall", 480)
 end
 
 ---------------------------------------------------------------------------

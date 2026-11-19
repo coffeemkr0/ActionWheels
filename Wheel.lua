@@ -167,6 +167,7 @@ local function BuildSlice(page, i)
 	b:HookScript("OnEnter", function(self)
 		self.hl:Show()
 		AW.Sound("hover")
+		AW.ShowSlotTooltip(self)
 		local p = AW.P()
 		local def = p.wheels[self.page.wheelId]
 		self.page.name:SetText(AW.DescribeSlot(def and def.items[self.index]))
@@ -181,6 +182,7 @@ local function BuildSlice(page, i)
 		end
 	end)
 	b:HookScript("OnLeave", function(self)
+		GameTooltip:Hide()
 		self.push:Hide()
 		self.hl:Hide()
 		local p = AW.P()
@@ -254,6 +256,54 @@ local function BuildPage(k)
 	toggle:SetFrameRef(pageName(k), page)
 	pages[k] = page
 	return page
+end
+
+---------------------------------------------------------------------------
+-- Tooltips: the game's own tooltip for spells and items; a short description for the rest
+---------------------------------------------------------------------------
+local function TooltipHasText()
+	local n = GameTooltip:NumLines()
+	return type(n) == "number" and n > 0
+end
+
+function AW.ShowSlotTooltip(b)
+	local S = AW.P().settings
+	if S.tooltips == false then return end
+	local def = AW.P().wheels[b.page.wheelId]
+	local slot = def and def.items[b.index]
+	if AW.IsEmpty(slot) then return end
+	GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
+	local spec = slot
+	if slot.type == "macro" then -- a macro with #showtooltip shows the tooltip of what it points at
+		local v = AW.MacroTooltipSlot(slot.macrotext)
+		if v then spec = v end
+	end
+	local shown = false
+	if spec.type == "spell" then
+		local id = AW.SpellIdOf and AW.SpellIdOf(spec.spell)
+		if id and pcall(GameTooltip.SetSpellByID, GameTooltip, id) then shown = TooltipHasText() end
+	elseif spec.type == "item" then
+		local id = GetItemInfoInstant and (GetItemInfoInstant(spec.item))
+		if id and pcall(GameTooltip.SetItemByID, GameTooltip, id) then shown = TooltipHasText() end
+	end
+	if not shown then
+		GameTooltip:ClearLines()
+		GameTooltip:AddLine(AW.DescribeSlot(slot), 1, 0.82, 0)
+		if slot.type == "macro" then
+			for line in string.gmatch(slot.macrotext or "", "[^\n]+") do
+				if not string.find(line, "^%s*[#/]showtooltip") then GameTooltip:AddLine(line, 0.8, 0.8, 0.8, true) end
+			end
+		elseif slot.type == "pet" then
+			GameTooltip:AddLine("Pet command", 0.8, 0.8, 0.8)
+		elseif slot.type == "wheel" then
+			GameTooltip:AddLine("Opens another wheel", 0.8, 0.8, 0.8)
+		elseif spec.type == "spell" then
+			GameTooltip:AddLine("Spell", 0.8, 0.8, 0.8)
+		elseif spec.type == "item" then
+			GameTooltip:AddLine("Item", 0.8, 0.8, 0.8)
+		end
+	end
+	GameTooltip:Show()
 end
 
 ---------------------------------------------------------------------------
@@ -598,6 +648,7 @@ local function Build()
 	end)
 	root:SetScript("OnShow", function() AW.RefreshStates() end)
 	root:SetScript("OnHide", function()
+		GameTooltip:Hide()
 		AW.HideSlotMenu()
 		AW.CancelSwap()
 	end)
