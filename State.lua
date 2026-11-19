@@ -134,6 +134,51 @@ AW.buffLog = {} -- last few state changes with their source, for /aw buffs
 
 AW.SpellIdOf = function(name) return try(spellIdOf, name) end
 
+---------------------------------------------------------------------------
+-- Mirror the built-in action bars: if the spell sits on an action bar, use that slot's own icon
+-- and its "checked" (active) state, so the wheel looks the same as the bar does.
+---------------------------------------------------------------------------
+AW.actionSlots = {} -- spellID -> action slot (or false), cleared when the bars change
+
+local function findActionSlot(id)
+	if not id then return nil end
+	local c = AW.actionSlots[id]
+	if c ~= nil then return c or nil end
+	local slot
+	if C_ActionBar and C_ActionBar.FindSpellActionButtons then
+		local t = try(C_ActionBar.FindSpellActionButtons, id)
+		if type(t) == "table" then slot = t[1] end
+	end
+	if not slot and GetActionInfo then
+		pcall(function()
+			for i = 1, 180 do
+				local kind, aid = GetActionInfo(i)
+				if not secret(kind) and not secret(aid) and kind == "spell" and aid == id then slot = i return end
+			end
+		end)
+	end
+	AW.actionSlots[id] = slot or false
+	return slot
+end
+
+-- icon, checked   (either may be nil when the spell is not on a bar or the game hides it)
+function AW.ActionBarLook(name)
+	local slot = findActionSlot(try(spellIdOf, name))
+	if not slot then return nil, nil end
+	local tex, checked
+	local getTex = (C_ActionBar and C_ActionBar.GetActionTexture) or GetActionTexture
+	if getTex then
+		local t = try(getTex, slot)
+		if t ~= nil and not secret(t) then tex = t end
+	end
+	local isCur = (C_ActionBar and C_ActionBar.IsCurrentAction) or IsCurrentAction
+	if isCur then
+		local r = try(isCur, slot)
+		if r ~= nil and not secret(r) then checked = (r == true or r == 1) end
+	end
+	return tex, checked
+end
+
 local function remember(name, on, data, why)
 	if AW.buffCache[name] ~= on then
 		AW.buffLog[#AW.buffLog + 1] = string.format("%s -> %s (%s)", name, on and "on" or "off", why or "lookup")
@@ -292,6 +337,8 @@ function AW.SlotState(slot)
 		end
 		st.inRange = try(spellRange, name)
 		st.active = AW.IsBuffActive(name) -- e.g. the Aspect you are in
+		local _, checked = AW.ActionBarLook(name)
+		if checked then st.active = true end -- the action bar says it is active
 	elseif slot.type == "item" and slot.item then
 		local name = slot.item
 		st.cdStart, st.cdDur = try(function() return itemCooldown(itemId(name)) end)

@@ -183,6 +183,8 @@ frame:RegisterEvent("ADDON_LOADED")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+-- the action-bar slot lookup is cached; any change to the bars invalidates it
+for _, ev in ipairs({ "ACTIONBAR_SLOT_CHANGED", "PLAYER_ENTERING_WORLD", "SPELLS_CHANGED" }) do pcall(frame.RegisterEvent, frame, ev) end
 -- keep the "which buffs are on me" memory fresh (used for the active-aspect highlight)
 if not (frame.RegisterUnitEvent and pcall(frame.RegisterUnitEvent, frame, "UNIT_AURA", "player")) then
 	pcall(frame.RegisterEvent, frame, "UNIT_AURA")
@@ -200,6 +202,9 @@ AW.OnEvent = function(_, event, a1, a2, a3)
 		if now - lastAura < 0.25 then return end
 		lastAura = now
 		AW.UpdateBuffCache()
+	elseif event == "ACTIONBAR_SLOT_CHANGED" or event == "PLAYER_ENTERING_WORLD" or event == "SPELLS_CHANGED" then
+		AW.actionSlots = {}
+		AW.spellIdCache = {}
 	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 		if a1 ~= "player" or not AW.OnCastSucceeded then return end
 		if AW.debug then AW.Print("cast succeeded (spell id " .. ((issecretvalue and issecretvalue(a3)) and "hidden" or tostring(a3)) .. ")") end

@@ -341,6 +341,40 @@ cur = "iconB"
 AW.RefreshStates()
 eq(_G.ActionWheelsP1S1.iconTex, "iconB", "slice follows the spell when its icon changes")
 
+-- mirror the action bar's icon and checked state
+AW.actionSlots, AW.spellIdCache = {}, {}
+C_Spell = { GetSpellInfo = function(n) if n == "Aspect of the Hawk" then return { spellID = 13165 } end end }
+C_ActionBar = {
+	FindSpellActionButtons = function(id) if id == 13165 then return { 7 } end return {} end,
+	GetActionTexture = function(slot) return slot == 7 and "barIcon" or nil end,
+	IsCurrentAction = function(slot) return slot == 7 end,
+}
+local tex, chk = AW.ActionBarLook("Aspect of the Hawk")
+eq(tex, "barIcon", "action bar icon mirrored"); eq(chk, true, "action bar checked state mirrored")
+eq(AW.SlotIcon({ type = "spell", spell = "Aspect of the Hawk" }), "barIcon", "slot icon is the action bar's icon")
+eq(AW.SlotState({ type = "spell", spell = "Aspect of the Hawk" }).active, true, "checked on the bar means active")
+eq(AW.ActionBarLook("Not On A Bar"), nil, "spells not on a bar have no bar look")
+-- classic-style scan
+C_ActionBar = nil
+GetActionInfo = function(i) if i == 12 then return "spell", 13165 end return nil end
+GetActionTexture = function(slot) return slot == 12 and "scanIcon" or nil end
+IsCurrentAction = function(slot) return false end
+AW.actionSlots = {}
+eq((AW.ActionBarLook("Aspect of the Hawk")), "scanIcon", "found by scanning the slots")
+-- bars change: cache cleared by the event
+AW.OnEvent(nil, "ACTIONBAR_SLOT_CHANGED")
+eq(next(AW.actionSlots), nil, "slot cache cleared when the bars change")
+-- secret values from the bar are ignored
+issecretvalue = function(v) return getmetatable(v) == SECRET end
+GetActionTexture = function() return mk() end
+IsCurrentAction = function() return mk() end
+AW.actionSlots = {}
+local st2, ck2 = AW.ActionBarLook("Aspect of the Hawk")
+eq(st2, nil, "secret bar icon ignored"); eq(ck2, nil, "secret checked state ignored")
+issecretvalue, GetActionInfo, GetActionTexture, IsCurrentAction = nil, nil, nil, nil
+C_Spell = nil
+AW.actionSlots, AW.spellIdCache = {}, {}
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")

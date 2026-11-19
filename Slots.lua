@@ -165,8 +165,10 @@ function AW.SlotIcon(slot)
 	if slot.type == "wheel" then return "Interface\\Icons\\INV_Misc_Map_01" end
 	local tex
 	if slot.type == "spell" then
+		-- the action bar's own icon for it, when it is on a bar (what the bar shows is what we show)
+		if AW.ActionBarLook then tex = (AW.ActionBarLook(slot.spell)) end
 		-- follow the spell as the game sees it now: a replaced / transformed spell has another icon
-		local id = AW.SpellIdOf and AW.SpellIdOf(slot.spell)
+		local id = (not tex) and AW.SpellIdOf and AW.SpellIdOf(slot.spell)
 		if id and C_Spell and C_Spell.GetOverrideSpell and C_Spell.GetSpellTexture then
 			local ok, ov = pcall(C_Spell.GetOverrideSpell, id)
 			if ok and ov and ov ~= id then

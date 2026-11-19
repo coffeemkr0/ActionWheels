@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.3
+- **Spell slices mirror the built-in action bar.** When a spell is on one of your action bars, its slice now uses that bar slot's own icon (so it matches what the bar shows, including icon changes while an Aspect is active) and treats the bar's "checked" state as active. A spell that is not on any bar behaves as before.
+
 ## 0.5.2
 - **Spell and item slices follow the live icon.** Like action-bar spell buttons, a slice re-reads its spell's icon while the wheel is open, so it changes when the game replaces or transforms the spell (override spells are resolved too). A slot with an icon you chose yourself keeps it.
 
