@@ -245,7 +245,7 @@ local HELP = {
 	"/aw clear <slot>   /aw list   /aw slots <4-12>",
 	"/aw mode toggle|hold   /aw at cursor|center   /aw scale <0.5-2>",
 	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
-	"/aw minimap   /aw keys   /aw buffs   /aw debug   /aw reset   (restore the starter wheel)",
+	"/aw minimap   /aw keys   /aw buffs   /aw inspect <spell>   /aw debug   /aw reset   (restore the starter wheel)",
 	"/aw (no arguments) opens the settings window",
 }
 
@@ -354,6 +354,9 @@ function AW.Slash(msg)
 		return AW.Print("debug " .. (AW.debug and "on: clicking a slice prints what it received" or "off"))
 	elseif cmd == "buffs" then
 		for _, line in ipairs(AW.BuffReport()) do AW.Print(line) end
+	elseif cmd == "inspect" then
+		if rest == "" then return AW.Print("Usage: /aw inspect <spell name>") end
+		for _, line in ipairs(AW.InspectSpell(rest)) do AW.Print(line) end
 	elseif cmd == "keys" then
 		AW.OpenKeyBindings()
 	elseif cmd == "" or cmd == "config" then

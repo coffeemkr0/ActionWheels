@@ -373,3 +373,46 @@ function AW.StateTint(st)
 	if st.inRange == false then return 1, 0.3, 0.3, false end
 	return 1, 1, 1, false
 end
+
+---------------------------------------------------------------------------
+-- /aw inspect <spell>: what the game says about a spell's icon and state, from every angle
+---------------------------------------------------------------------------
+function AW.InspectSpell(name)
+	local out = {}
+	local function add(label, fn, ...)
+		local ok, a, b = pcall(fn, ...)
+		local function show(v) if secret(v) then return "<secret>" end return tostring(v) end
+		out[#out + 1] = label .. ": " .. (ok and (show(a) .. (b ~= nil and (", " .. show(b)) or "")) or ("error " .. tostring(a)))
+	end
+	local id = try(spellIdOf, name)
+	out[#out + 1] = "spell '" .. name .. "' id=" .. tostring(id)
+	if C_Spell and C_Spell.GetSpellInfo then
+		add("C_Spell.GetSpellInfo iconID, originalIconID", function()
+			local i = C_Spell.GetSpellInfo(name)
+			if type(i) ~= "table" then return nil end
+			return i.iconID, i.originalIconID
+		end)
+	end
+	if C_Spell and C_Spell.GetSpellTexture then
+		add("C_Spell.GetSpellTexture(name)", C_Spell.GetSpellTexture, name)
+		if id then add("C_Spell.GetSpellTexture(id)", C_Spell.GetSpellTexture, id) end
+	end
+	if GetSpellTexture then add("GetSpellTexture(name)", GetSpellTexture, name) end
+	if id and C_Spell and C_Spell.GetOverrideSpell then
+		add("override spell id", C_Spell.GetOverrideSpell, id)
+	end
+	if id and C_Spell and C_Spell.IsCurrentSpell then add("IsCurrentSpell", C_Spell.IsCurrentSpell, id)
+	elseif id and IsCurrentSpell then add("IsCurrentSpell", IsCurrentSpell, id) end
+	out[#out + 1] = "buff: cache=" .. tostring(AW.buffCache[name]) .. " active=" .. tostring(AW.IsBuffActive(name))
+	local slot = findActionSlot(id)
+	if slot then
+		out[#out + 1] = "on action bar slot " .. tostring(slot)
+		local getTex = (C_ActionBar and C_ActionBar.GetActionTexture) or GetActionTexture
+		if getTex then add("bar icon", getTex, slot) end
+		local isCur = (C_ActionBar and C_ActionBar.IsCurrentAction) or IsCurrentAction
+		if isCur then add("bar checked (IsCurrentAction)", isCur, slot) end
+	else
+		out[#out + 1] = "not on an action bar (or not found)"
+	end
+	return out
+end

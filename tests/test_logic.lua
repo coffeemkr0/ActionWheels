@@ -375,6 +375,15 @@ issecretvalue, GetActionInfo, GetActionTexture, IsCurrentAction = nil, nil, nil,
 C_Spell = nil
 AW.actionSlots, AW.spellIdCache = {}, {}
 
+-- /aw inspect
+C_Spell = { GetSpellInfo = function(n) return { spellID = 1, iconID = 111, originalIconID = 222 } end, GetSpellTexture = function(id) return 333 end }
+local insp = AW.InspectSpell("Aspect of the Hawk")
+local joined = table.concat(insp, "\n")
+eq(string.find(joined, "iconID, originalIconID: 111, 222", 1, true) ~= nil, true, "inspect shows iconID and originalIconID")
+eq(string.find(joined, "GetSpellTexture(name): 333", 1, true) ~= nil, true, "inspect shows the texture lookups")
+AW.Slash("inspect Aspect of the Hawk")
+C_Spell = nil
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.4
+- `/aw inspect <spell>` prints what the game reports about a spell: its icon from each lookup, any override, whether it is active, and (if on a bar) the bar slot's icon and checked state. A diagnostic for icon mismatches.
+
 ## 0.5.3
 - **Spell slices mirror the built-in action bar.** When a spell is on one of your action bars, its slice now uses that bar slot's own icon (so it matches what the bar shows, including icon changes while an Aspect is active) and treats the bar's "checked" state as active. A spell that is not on any bar behaves as before.
 
