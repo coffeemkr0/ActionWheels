@@ -490,6 +490,31 @@ eq(AW.flashing[sl], true, "flash starts")
 AW.AnimateFlashes()
 eq(AW.flashing[sl], true, "flash still running right away")
 
+-- a failing cooldown / count display must not leave a stale highlight
+AW.Slash("reset")
+AW.P().wheels.main.items[1] = { type = "spell", spell = "Aspect of the Hawk" }
+AW.P().wheels.main.items[2] = { type = "spell", spell = "Aspect of the Monkey" }
+AW.ApplyLayout()
+AW.buffCache = { ["Aspect of the Hawk"] = false, ["Aspect of the Monkey"] = true }
+local s1, s2 = _G.ActionWheelsP1S1, _G.ActionWheelsP1S2
+s1.cd.SetCooldown = function() error("secret value refused") end
+s2.cd.SetCooldown = function() error("secret value refused") end
+s1.count.SetText = function() error("secret value refused") end
+s1.glow:Show(); s1.ring.SetVertexColor = function(_, r, g) s1.ringR = r end
+_COMBAT = true
+GetSpellCooldown = function() return 100, 10, 1 end
+GetSpellCharges = nil
+_G.ActionWheelsPage1:Show()
+AW.RefreshStates()
+eq(s1.glow:IsShown(), false, "the Hawk slice loses its highlight even if its cooldown display fails")
+eq(s2.glow:IsShown(), true, "the active slice gets its highlight even if its cooldown display fails")
+eq(s1.ringR, 0.4, "the ring is reset on the inactive slice")
+AW.debug = true
+AW.RefreshStates()
+AW.debug = false
+_COMBAT = false
+s1.cd.SetCooldown, s2.cd.SetCooldown, s1.count.SetText, s1.ring.SetVertexColor = nil, nil, nil, nil
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")

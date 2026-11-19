@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.1
+- **Fix: gold highlight stuck on the wrong Aspect in combat.** If the game refused one part of a slice's display in combat (the cooldown swirl or count), the update stopped halfway and left the old highlight behind. The highlight and tint are now applied first, and the cooldown and count each fail on their own. With `/aw debug` on, such a failure prints a "slice display problem" line.
+
 ## 0.7.0
 - **A spell slice stays open until the spell actually casts**, so you can keep clicking it when a cast gets blocked (auto-attack, global cooldown...). Out of combat the wheel closes once the cast is confirmed. In combat the game does not let an addon hide the wheel, so a spell slice stays open there: close it with your key or by clicking outside. Item, macro and pet slices still close on click.
 - New setting **After clicking a spell**: *Close when it casts* (default), *Close right away* (the old behaviour) or *Stay open*. Also `/aw close success|click|never`.

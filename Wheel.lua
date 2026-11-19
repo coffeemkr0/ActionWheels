@@ -339,6 +339,35 @@ end
 ---------------------------------------------------------------------------
 -- Live state: cooldown swirl, charges / item count, usable and range tinting
 ---------------------------------------------------------------------------
+local lastPaintError
+local function partOK(what, ok, err)
+	if ok then return end
+	if AW.debug and err ~= lastPaintError then
+		lastPaintError = err
+		AW.Print("slice display problem (" .. what .. "): " .. tostring(err))
+	end
+end
+
+local function PaintCooldown(b, st)
+	if st.cdSecret then
+		-- secret numbers: no comparing, just hand them to the swirl each refresh
+		b.cd:SetCooldown(st.cdStart, st.cdDur)
+		b.cdStart, b.cdDur = true, true
+	elseif st.cdStart and st.cdDur and st.cdDur > 0 then
+		if b.cdStart ~= st.cdStart or b.cdDur ~= st.cdDur then
+			b.cd:SetCooldown(st.cdStart, st.cdDur)
+			b.cdStart, b.cdDur = st.cdStart, st.cdDur
+		end
+	elseif b.cdStart then
+		b.cd:SetCooldown(0, 0)
+		b.cdStart, b.cdDur = nil, nil
+	end
+end
+
+local function PaintCount(b, st)
+	if st.count then b.count:SetText(st.count) else b.count:SetText("") end
+end
+
 local function Paint(b, slot)
 	-- a macro with #showtooltip shows (and tracks) the spell or item it points at; the target can
 	-- change while the wheel is open ([mod:shift] etc.), so the icon is re-checked every refresh
@@ -363,24 +392,9 @@ local function Paint(b, slot)
 			b.iconTex = tex
 		end
 	end
-	if st.cdSecret then
-		-- secret numbers: no comparing, just hand them to the swirl each refresh
-		b.cd:SetCooldown(st.cdStart, st.cdDur)
-		b.cdStart, b.cdDur = true, true
-	elseif st.cdStart and st.cdDur and st.cdDur > 0 then
-		if b.cdStart ~= st.cdStart or b.cdDur ~= st.cdDur then
-			b.cd:SetCooldown(st.cdStart, st.cdDur)
-			b.cdStart, b.cdDur = st.cdStart, st.cdDur
-		end
-	elseif b.cdStart then
-		b.cd:SetCooldown(0, 0)
-		b.cdStart, b.cdDur = nil, nil
-	end
-	if st.count then
-		b.count:SetText(st.count)
-	else
-		b.count:SetText("")
-	end
+	-- The look of a slice is applied in order of importance, each part on its own: if the game
+	-- refuses one of the later parts in combat (cooldown numbers, counts), the highlight and tint
+	-- above it must still be correct. (A failure used to leave a stale gold ring on the wrong slice.)
 	-- buff on you (the active Aspect, etc.): gold frame plus the action bar's checked highlight
 	if st.active then
 		b.ring:SetVertexColor(1, 0.82, 0.1, 1)
@@ -392,6 +406,8 @@ local function Paint(b, slot)
 	local r, g, bl, desat = AW.StateTint(st)
 	b.icon:SetVertexColor(r, g, bl)
 	if b.icon.SetDesaturated then b.icon:SetDesaturated(desat) end
+	partOK("cooldown", pcall(PaintCooldown, b, st))
+	partOK("count", pcall(PaintCount, b, st))
 end
 
 function AW.RefreshStates()
@@ -405,7 +421,7 @@ function AW.RefreshStates()
 					local slot = def.items[i]
 					if not AW.IsEmpty(slot) and slot.type ~= "pet" and slot.type ~= "wheel" then
 						-- never let a display problem become an error message
-						pcall(Paint, page.slices[i], slot)
+						partOK("slice " .. i, pcall(Paint, page.slices[i], slot))
 					end
 				end
 			end
