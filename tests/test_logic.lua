@@ -517,6 +517,21 @@ _COMBAT = false
 s1.cd.SetCooldown, s2.cd.SetCooldown, s1.count.SetText = nil, nil, nil
 s1.ring.SetVertexColor = origRing
 
+-- auto key behaviour: hold in combat, toggle out of combat
+eq(_STATEDRV.combatmode, "[combat] hold; toggle", "combat state driver registered")
+eq(_G.ActionWheelsRoot:GetAttribute("combatmode"), "toggle", "starts in toggle")
+eq(type(_G.ActionWheelsRoot:GetAttribute("_onstate-combatmode")), "string", "state handler installed")
+AW.Slash("mode auto")
+eq(AW.P().settings.openMode, "auto", "auto mode accepted")
+eq(_G.ActionWheelsToggle:GetAttribute("mode"), "auto", "toggle button gets auto")
+eq(string.find(_G.ActionWheelsToggle:GetAttribute("_onclick"), 'combatmode', 1, true) ~= nil, true, "click snippet reads the combat state")
+AW.Slash("mode sideways")
+eq(AW.P().settings.openMode, "auto", "bad mode rejected")
+ActionWheelsDB.profile.settings.openMode = "bogus"
+AW.InitDB()
+eq(AW.P().settings.openMode, "toggle", "a bad saved mode is repaired")
+AW.Slash("mode toggle")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")

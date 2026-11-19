@@ -369,7 +369,7 @@ end
 ---------------------------------------------------------------------------
 local function BuildSettingsTab(t)
 	Text(t, "How the wheel opens", 10, -8)
-	Cycle(t, "Key behaviour", 20, -32, { { "toggle", "Press to open / close" }, { "hold", "Hold to show" } },
+	Cycle(t, "Key behaviour", 20, -32, { { "toggle", "Press to open / close" }, { "hold", "Hold to show" }, { "auto", "Auto (hold in combat)" } },
 		function() return S().openMode end, function(v) S().openMode = v end, 190, 140)
 	Cycle(t, "Opens at", 20, -62, { { "cursor", "The mouse cursor" }, { "center", "Screen centre" } },
 		function() return S().openAt end, function(v) S().openAt = v end, 190, 140)

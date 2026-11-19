@@ -245,6 +245,11 @@ local function Build()
 	root:SetAttribute("gopage", GOPAGE)
 	-- "auto" wheels: a state driver keeps `home` (the page that opens first) in step with the game
 	root:SetAttribute("_onstate-autopage", [[ self:SetAttribute("home", newstate) ]])
+	-- "auto" key behaviour: hold in combat, press-to-toggle out of combat. The state driver keeps
+	-- root's `combatmode` attribute in step with the game; the toggle button reads it on each press.
+	root:SetAttribute("combatmode", "toggle")
+	root:SetAttribute("_onstate-combatmode", [[ self:SetAttribute("combatmode", newstate) ]])
+	RegisterStateDriver(root, "combatmode", "[combat] hold; toggle")
 
 	-- click anywhere outside the wheel to close it
 	catcher = CreateFrame("Button", "ActionWheelsCatcher", root, "SecureHandlerClickTemplate")
@@ -277,7 +282,9 @@ local function Build()
 	toggle:SetAttribute("_onclick", [[
 		local w = self:GetFrameRef("wheel")
 		local show
-		if self:GetAttribute("mode") == "hold" then
+		local mode = self:GetAttribute("mode")
+		if mode == "auto" then mode = w:GetAttribute("combatmode") end
+		if mode == "hold" then
 			show = down and true or false
 		else
 			if not down then return end

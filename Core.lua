@@ -69,6 +69,8 @@ end
 
 local function Sanitize(p)
 	fill(p.settings, AW.DEFAULT_SETTINGS)
+	local om = p.settings.openMode
+	if om ~= "toggle" and om ~= "hold" and om ~= "auto" then p.settings.openMode = "toggle" end
 	local cm = p.settings.closeMode
 	if cm ~= "success" and cm ~= "click" and cm ~= "never" then p.settings.closeMode = "success" end
 	if not p.wheels[p.current] then p.current = p.order[1] end
@@ -245,7 +247,7 @@ local HELP = {
 	"/aw set <slot> wheel <name or number>  - a slot that opens another wheel",
 	"/aw wheels   /aw wheel new|select|rename|delete   (wheels you page through with the hub arrows)",
 	"/aw clear <slot>   /aw list   /aw slots <4-12>",
-	"/aw mode toggle|hold   /aw at cursor|center   /aw scale <0.5-2>   /aw close success|click|never",
+	"/aw mode toggle|hold|auto   /aw at cursor|center   /aw scale <0.5-2>   /aw close success|click|never",
 	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
 	"/aw minimap   /aw keys   /aw buffs   /aw inspect <spell>   /aw debug   /aw reset   (restore the starter wheel)",
 	"/aw (no arguments) opens the settings window",
@@ -297,7 +299,9 @@ function AW.Slash(msg)
 		def.slots = math.max(AW.MINSLOTS, math.min(AW.MAXSLOTS, math.floor(n)))
 		return done(true, "the wheel now has " .. def.slots .. " slots")
 	elseif cmd == "mode" then
-		if rest ~= "toggle" and rest ~= "hold" then return AW.Print("Usage: /aw mode toggle|hold") end
+		if rest ~= "toggle" and rest ~= "hold" and rest ~= "auto" then
+			return AW.Print("Usage: /aw mode toggle|hold|auto  (auto: hold in combat, press-to-open out of combat)")
+		end
 		p.settings.openMode = rest
 		return done(true, "open mode: " .. rest)
 	elseif cmd == "close" then

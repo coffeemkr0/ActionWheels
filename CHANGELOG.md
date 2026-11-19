@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.0
+- **Auto key behaviour.** One keybind that acts as *hold to show* in combat and *press to open / press to close* out of combat. Choose it in Settings > Key behaviour, or `/aw mode auto`. The switch follows the game's combat state through a secure state driver, so it works without any addon code running in combat.
+
 ## 0.8.0
 - **Square buttons.** The round discs and rings behind the slices are gone: each slice is now a square icon with a thin square border (gold while active), and the hover, pressed and click-flash overlays are square too. The editor preview matches. The centre hub stays round. Neighbouring buttons are spaced so even square corners never overlap.
 
