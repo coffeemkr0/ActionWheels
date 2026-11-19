@@ -571,7 +571,7 @@ local function BuildTrackerTab(t)
 		function() return TR().flash end, function(v) TR().flash = v end)
 	Check(t, "Play a sound when it is ready", 14, -260,
 		function() return TR().sound end, function(v) TR().sound = v end)
-	Check(t, "Unlock to move (drag the blue box)", 14, -286,
+	Check(t, "Unlock (shows a blue box to drag; Shift + drag always works)", 14, -286,
 		function() return not TR().locked end,
 		function(v) TR().locked = not v; AW.TrackerRefresh() end)
 	Button(t, "Reset position", 300, -288, 120, function() AW.TrackerResetPosition() end)

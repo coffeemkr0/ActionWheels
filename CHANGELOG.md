@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.2
+- **The cooldown strip can be dragged from any of its icons.** Shift + drag always moves it (even when locked); a plain drag works while it is unlocked. Hovering an icon shows the spell's tooltip and a "Shift + drag" hint.
+
 ## 0.14.1
 - **Tooltips on the wheel.** Hovering a slice shows the game's own tooltip for a spell or item (a `#showtooltip` macro shows the tooltip of the spell it points at). Macros list their lines, and pet commands and sub-wheel links get a short description. Turn them off in Look > *Show tooltips when hovering a slot* or with `/aw tooltips`.
 

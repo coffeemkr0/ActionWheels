@@ -88,6 +88,26 @@ end
 ---------------------------------------------------------------------------
 -- Frames
 ---------------------------------------------------------------------------
+-- Dragging: any icon (or the blue box while unlocked) moves the whole strip. Shift + drag always
+-- works; a plain drag works while the strip is unlocked.
+function AW.TrackerDragStart()
+	local cfg = T()
+	if not (frame and cfg) then return false end
+	if cfg.locked and not IsShiftKeyDown() then return false end
+	frame.moving = true
+	frame:StartMoving()
+	return true
+end
+
+function AW.TrackerDragStop()
+	if not (frame and frame.moving) then return end
+	frame.moving = false
+	frame:StopMovingOrSizing()
+	local cfg = T()
+	cfg.x, cfg.y = frame:GetLeft(), frame:GetTop()
+	AW.TrackerPlace()
+end
+
 local function BuildIcon(i)
 	local ic = CreateFrame("Frame", "ActionWheelsTrackerIcon" .. i, frame)
 	ic:SetWidth(36)
@@ -110,6 +130,26 @@ local function BuildIcon(i)
 	ic.flash:Hide()
 	ic:Hide()
 	ic.cdStart, ic.cdDur, ic.flashT, ic.texNow = false, false, false, false
+	ic:EnableMouse(true)
+	ic:RegisterForDrag("LeftButton")
+	ic:SetScript("OnDragStart", function() AW.TrackerDragStart() end)
+	ic:SetScript("OnDragStop", function() AW.TrackerDragStop() end)
+	ic:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		local id = self.entry and AW.SpellIdOf and AW.SpellIdOf(self.entry.name)
+		local shown = false
+		if id and pcall(GameTooltip.SetSpellByID, GameTooltip, id) then
+			local n = GameTooltip:NumLines()
+			shown = type(n) == "number" and n > 0
+		end
+		if not shown then
+			GameTooltip:ClearLines()
+			GameTooltip:AddLine(self.entry and self.entry.name or "Cooldown", 1, 0.82, 0)
+		end
+		GameTooltip:AddLine("Shift + drag to move the cooldown strip", 0.6, 0.6, 0.6)
+		GameTooltip:Show()
+	end)
+	ic:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	ic.cd:SetScript("OnCooldownDone", function()
 		if ic.entry and AW.TrackerTransition(ic.entry, false) then AW.TrackerReady(ic) end
 	end)
@@ -139,6 +179,7 @@ local function Place()
 	else frame:SetPoint("CENTER", UIParent, "CENTER", 0, -260) end
 end
 
+AW.TrackerPlace = Place
 local ANCHORS = { right = "TOPLEFT", down = "TOPLEFT", left = "TOPRIGHT", up = "BOTTOMLEFT" }
 
 -- Called every 0.2s (and on demand): refresh cooldowns, decide who is visible, lay the row out.
@@ -252,18 +293,8 @@ function AW.BuildTracker()
 	frame.mover.text:SetPoint("CENTER", frame.mover, "CENTER", 0, 0)
 	frame.mover.text:SetText("drag")
 	frame.mover:Hide()
-	frame:SetScript("OnDragStart", function(self)
-		local cfg = T()
-		if cfg and not cfg.locked then self.moving = true; self:StartMoving() end
-	end)
-	frame:SetScript("OnDragStop", function(self)
-		if not self.moving then return end
-		self.moving = false
-		self:StopMovingOrSizing()
-		local cfg = T()
-		cfg.x, cfg.y = self:GetLeft(), self:GetTop()
-		Place()
-	end)
+	frame:SetScript("OnDragStart", function() AW.TrackerDragStart() end)
+	frame:SetScript("OnDragStop", function() AW.TrackerDragStop() end)
 	local acc = 0
 	frame:SetScript("OnUpdate", function(_, dt)
 		acc = acc + (dt or 0)

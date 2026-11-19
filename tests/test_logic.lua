@@ -920,6 +920,34 @@ GameTooltip, C_Spell, GetSpellInfo, GetItemInfoInstant = realTip, nil, nil, nil
 AW.spellIdCache = {}
 AW.Slash("reset")
 
+-- dragging the cooldown strip
+local shiftDown = false
+IsShiftKeyDown = function() return shiftDown end
+local moved, stopped = 0, 0
+local trf = _G.ActionWheelsTracker
+trf.StartMoving = function() moved = moved + 1 end
+trf.StopMovingOrSizing = function() stopped = stopped + 1 end
+trf.GetLeft = function() return 120 end
+trf.GetTop = function() return 340 end
+ActionWheelsDB.tracker.locked = true
+eq(AW.TrackerDragStart(), false, "a locked strip does not move on a plain drag")
+shiftDown = true
+eq(AW.TrackerDragStart(), true, "Shift + drag moves it even when locked")
+eq(moved, 1, "StartMoving was called")
+AW.TrackerDragStop()
+eq(ActionWheelsDB.tracker.x, 120, "the position is saved (x)"); eq(ActionWheelsDB.tracker.y, 340, "the position is saved (y)")
+shiftDown = false
+ActionWheelsDB.tracker.locked = false
+eq(AW.TrackerDragStart(), true, "a plain drag works while unlocked")
+AW.TrackerDragStop()
+eq(stopped, 2, "StopMovingOrSizing after each drag")
+AW.TrackerDragStop()
+eq(stopped, 2, "a stop without a start does nothing")
+ActionWheelsDB.tracker.locked = true
+ActionWheelsDB.tracker.x, ActionWheelsDB.tracker.y = nil, nil
+IsShiftKeyDown = nil
+trf.StartMoving, trf.StopMovingOrSizing, trf.GetLeft, trf.GetTop = nil, nil, nil, nil
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")

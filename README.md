@@ -35,7 +35,7 @@ A small row of icons on screen (the **Tracker** tab, or `/aw tracker`) shows you
 - **Always show a spell:** tick **On the cooldown strip** on its slot in the Wheels tab. It stays on screen, dimmed with a swirl and countdown while cooling down, and green-bordered when ready.
 - **Long cooldowns automatically:** with *Add spells with long cooldowns automatically* on, any spell on your wheels whose cooldown is at least the number of seconds you set (30 by default) appears while it cools down and for a few seconds after it is ready.
 - **Ready alert:** the icon flashes (and optionally plays a sound) when a spell comes off cooldown.
-- **Moving it:** tick *Unlock to move* (or `/aw tracker unlock`), drag the blue box, then lock it again. Choose the icon size and which way the row grows. It isn't clickable, and it works in combat. Items are not tracked yet.
+- **Moving it:** **Shift + drag** any icon of the strip. Or tick *Unlock* (or `/aw tracker unlock`) to show a blue box you can drag even when nothing is on cooldown, then lock it again. Choose the icon size and which way the row grows. It isn't clickable, and it works in combat. Items are not tracked yet.
 
 ## Editing on the wheel itself
 **Right-click a slice** (out of combat) for a small menu: **Edit slot...** (opens the editor on that slot), **Swap with another slot...** (then left-click the slot to swap with; right-click cancels; it works within one wheel) and **Clear slot**.
