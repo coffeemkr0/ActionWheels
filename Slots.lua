@@ -19,6 +19,17 @@ AW.PET_COMMANDS = {
 -- Every secure attribute a slot can set; all are cleared before a slot is (re)applied.
 AW.ATTR_KEYS = { "type", "spell", "item", "macrotext" }
 
+-- Slice border colours (per slot): slot.color is one of these names
+AW.COLOR_ORDER = { "white", "green", "red", "pink", "blue", "gold", "purple" }
+AW.COLOR_RGB = {
+	white = { 1, 1, 1 }, green = { 0.3, 1, 0.35 }, red = { 1, 0.35, 0.35 }, pink = { 1, 0.5, 0.75 },
+	blue = { 0.4, 0.7, 1 }, gold = { 1, 0.82, 0.1 }, purple = { 0.72, 0.5, 1 },
+}
+function AW.SlotColor(slot)
+	local c = slot and slot.color and AW.COLOR_RGB[slot.color]
+	if c then return c[1], c[2], c[3] end
+end
+
 function AW.IsEmpty(slot)
 	return not slot or not slot.type
 end

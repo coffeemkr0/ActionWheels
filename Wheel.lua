@@ -57,6 +57,14 @@ local BACK_CLICK = [[
 
 local function pageName(k) return "page" .. k end
 
+local SOUND_NAMES = { hover = "igMainMenuOptionCheckBoxOn", use = "igMainMenuOptionCheckBoxOff" }
+local SOUND_KITS = { hover = "IG_MAINMENU_OPTION_CHECKBOX_ON", use = "IG_MAINMENU_OPTION_CHECKBOX_OFF" }
+function AW.Sound(kind)
+	local S = ActionWheelsDB and ActionWheelsDB.profile and AW.P().settings
+	if not (S and S.sounds and PlaySound) then return end
+	pcall(PlaySound, (SOUNDKIT and SOUNDKIT[SOUND_KITS[kind]]) or SOUND_NAMES[kind])
+end
+
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 -- A thin square border made of four edge textures. Behaves like one texture for SetVertexColor.
@@ -158,6 +166,7 @@ local function BuildSlice(page, i)
 	b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -4, 6)
 	b:HookScript("OnEnter", function(self)
 		self.hl:Show()
+		AW.Sound("hover")
 		local p = AW.P()
 		local def = p.wheels[self.page.wheelId]
 		self.page.name:SetText(AW.DescribeSlot(def and def.items[self.index]))
@@ -165,7 +174,12 @@ local function BuildSlice(page, i)
 	b:HookScript("OnMouseDown", function(self, button)
 		if button == "LeftButton" then self.push:Show() end
 	end)
-	b:HookScript("OnMouseUp", function(self) self.push:Hide() end)
+	b:HookScript("OnMouseUp", function(self, button)
+		self.push:Hide()
+		if button == "RightButton" then
+			if AW.swap then AW.CancelSwap() else AW.ShowSlotMenu(self) end
+		end
+	end)
 	b:HookScript("OnLeave", function(self)
 		self.push:Hide()
 		self.hl:Hide()
@@ -178,6 +192,10 @@ local function BuildSlice(page, i)
 		AW.DropOnSlot(self.page.wheelId, self.index)
 	end)
 	b:HookScript("OnClick", function(self, button, down)
+		if AW.swap then -- swap mode: slices are inert; a left-click picks where to move the slot
+			if not down and button == "LeftButton" then AW.FinishSwap(self) end
+			return
+		end
 		if AW.debug then
 			AW.Print("slice " .. self.index .. " " .. tostring(button) .. (down and " down" or " up") ..
 				": type=" .. tostring(self:GetAttribute("type")) .. " macro=" .. string.gsub(tostring(self:GetAttribute("macrotext")), "\n", " | ") ..
@@ -187,6 +205,7 @@ local function BuildSlice(page, i)
 			local def = AW.P().wheels[self.page.wheelId]
 			local slot = def and def.items[self.index]
 			AW.FlashSlice(self, 1, 1, 1) -- the click registered
+			AW.Sound("use")
 			local mode = AW.P().settings.closeMode
 			if slot and slot.type == "spell" then
 				-- remember which spell was clicked, to match the game's (possibly hidden) cast confirmation
@@ -235,6 +254,85 @@ local function BuildPage(k)
 	toggle:SetFrameRef(pageName(k), page)
 	pages[k] = page
 	return page
+end
+
+---------------------------------------------------------------------------
+-- Right-click a slice: edit / swap / clear (out of combat only)
+---------------------------------------------------------------------------
+local slotMenu
+function AW.HideSlotMenu()
+	if slotMenu and slotMenu:IsShown() then slotMenu:Hide() end
+end
+
+function AW.CancelSwap()
+	if not AW.swap then return end
+	AW.swap = nil
+	if not AW.InCombat() then AW.ApplyLayout() end
+end
+
+function AW.BeginSwap(slice)
+	AW.swap = { wheelId = slice.page.wheelId, idx = slice.index }
+	AW.ApplyLayout() -- slices go inert so a click only chooses the target
+	AW.Print("Swap: left-click the slot to swap with (right-click to cancel).")
+end
+
+function AW.FinishSwap(slice)
+	local sw = AW.swap
+	AW.swap = nil
+	if sw and slice.page.wheelId == sw.wheelId then
+		AW.SwapSlots(AW.P(), sw.wheelId, sw.idx, slice.index)
+	elseif sw then
+		AW.Print("A slot can only be swapped within its own wheel.")
+	end
+	AW.ApplyLayout()
+	if AW.RefreshConfig then AW.RefreshConfig() end
+end
+
+function AW.ShowSlotMenu(slice)
+	if AW.InCombat() then AW.Print("Editing is locked during combat.") return end
+	if not slotMenu then
+		slotMenu = CreateFrame("Frame", "ActionWheelsSlotMenu", UIParent)
+		slotMenu:SetFrameStrata("FULLSCREEN_DIALOG")
+		slotMenu:SetWidth(190)
+		slotMenu:SetHeight(76)
+		slotMenu.bg = slotMenu:CreateTexture(nil, "BACKGROUND")
+		slotMenu.bg:SetAllPoints(slotMenu)
+		slotMenu.bg:SetTexture(WHITE)
+		slotMenu.bg:SetVertexColor(0.05, 0.05, 0.09, 0.97)
+		slotMenu:Hide()
+		local function item(i, text, fn)
+			local b = CreateFrame("Button", nil, slotMenu)
+			b:SetWidth(190)
+			b:SetHeight(22)
+			b:SetPoint("TOPLEFT", slotMenu, "TOPLEFT", 0, -6 - (i - 1) * 22)
+			b.t = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+			b.t:SetPoint("LEFT", b, "LEFT", 10, 0)
+			b.t:SetText(text)
+			b.hl = b:CreateTexture(nil, "HIGHLIGHT")
+			b.hl:SetAllPoints(b)
+			b.hl:SetTexture(WHITE)
+			b.hl:SetVertexColor(0.3, 0.5, 1, 0.3)
+			b:SetScript("OnClick", function() slotMenu:Hide(); fn(slotMenu.slice) end)
+		end
+		item(1, "Edit slot...", function(s)
+			local id, idx = s.page.wheelId, s.index
+			AW.CloseWheel()
+			if AW.EditSlot then AW.EditSlot(id, idx) end
+		end)
+		item(2, "Swap with another slot...", function(s) AW.BeginSwap(s) end)
+		item(3, "Clear slot", function(s)
+			local def = AW.P().wheels[s.page.wheelId]
+			if def then def.items[s.index] = nil end
+			AW.ApplyLayout()
+			if AW.RefreshConfig then AW.RefreshConfig() end
+		end)
+	end
+	slotMenu.slice = slice
+	slotMenu:ClearAllPoints()
+	local es = UIParent:GetEffectiveScale()
+	local x, y = GetCursorPosition()
+	slotMenu:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x / es + 6, y / es - 6)
+	slotMenu:Show()
 end
 
 ---------------------------------------------------------------------------
@@ -497,6 +595,10 @@ local function Build()
 		if acc >= 0.1 then acc = 0; AW.RefreshStates() end
 	end)
 	root:SetScript("OnShow", function() AW.RefreshStates() end)
+	root:SetScript("OnHide", function()
+		AW.HideSlotMenu()
+		AW.CancelSwap()
+	end)
 end
 
 ---------------------------------------------------------------------------
@@ -577,6 +679,11 @@ local function PaintCount(b, st)
 end
 
 local function Paint(b, slot)
+	if AW.swap then -- swap mode: the chosen slot is green, the rest orange
+		local src = (b.page.wheelId == AW.swap.wheelId and b.index == AW.swap.idx)
+		if src then b.ring:SetVertexColor(0.3, 1, 0.3, 1) else b.ring:SetVertexColor(1, 0.65, 0.1, 1) end
+		return
+	end
 	-- a macro with #showtooltip shows (and tracks) the spell or item it points at; the target can
 	-- change while the wheel is open ([mod:shift] etc.), so the icon is re-checked every refresh
 	if slot.type == "macro" then
@@ -608,7 +715,8 @@ local function Paint(b, slot)
 		b.ring:SetVertexColor(1, 0.82, 0.1, 1)
 		b.glow:Show()
 	else
-		b.ring:SetVertexColor(0.4, 0.45, 0.55, 1)
+		local base = b.baseRing or { 0.4, 0.45, 0.55 }
+		b.ring:SetVertexColor(base[1], base[2], base[3], 1)
 		b.glow:Hide()
 	end
 	local r, g, bl, desat = AW.StateTint(st)
@@ -647,8 +755,35 @@ local function LayoutPage(page, id, k, count, targets)
 	local n = def.slots
 	local btn = S.buttonSize or 56
 	-- square buttons: keep the hub clear, and neighbours (even at the diagonal) from overlapping
-	local minR = math.max(48 + btn / 2 + 8, 1.15 * btn / (2 * math.sin(math.pi / n)))
+	local fs, hs = S.fontScale or 1, S.hubScale or 1
+	local minR = math.max(48 * hs + btn / 2 + 8, 1.15 * btn / (2 * math.sin(math.pi / n)))
 	local radius = math.max(S.radius or 105, minR)
+
+	-- centre hub: text and controls scale with the "text size" and "centre size" settings
+	root:SetWidth(96 * hs)
+	root:SetHeight(96 * hs)
+	root.hubBg:SetWidth(96 * hs)
+	root.hubBg:SetHeight(96 * hs)
+	page.name:SetFont("Fonts\\ARIALN.TTF", 12 * fs)
+	page.name:SetWidth(84 * hs)
+	page.name:ClearAllPoints()
+	page.name:SetPoint("CENTER", page, "CENTER", 0, 20 * hs)
+	page.num:SetFont("Fonts\\ARIALN.TTF", 10 * fs)
+	page.num:ClearAllPoints()
+	page.num:SetPoint("CENTER", page, "CENTER", 0, -8 * hs)
+	for _, hb in ipairs({ page.prev, page.next, page.back }) do
+		hb:SetHeight(18 * hs)
+		hb.t:SetFont("Fonts\\ARIALN.TTF", 12 * fs)
+	end
+	page.prev:SetWidth(22 * hs)
+	page.next:SetWidth(22 * hs)
+	page.back:SetWidth(36 * hs)
+	page.prev:ClearAllPoints()
+	page.prev:SetPoint("CENTER", page, "CENTER", -26 * hs, -8 * hs)
+	page.next:ClearAllPoints()
+	page.next:SetPoint("CENTER", page, "CENTER", 26 * hs, -8 * hs)
+	page.back:ClearAllPoints()
+	page.back:SetPoint("CENTER", page, "CENTER", 0, -28 * hs)
 
 	page.wheelId = id
 	page.name:SetText(def.name)
@@ -665,17 +800,26 @@ local function LayoutPage(page, id, k, count, targets)
 		b:SetAttribute("subwheel", nil)
 		b.cdStart, b.cdDur = nil, nil
 		b.glow:Hide()
-		b.ring:SetVertexColor(0.4, 0.45, 0.55, 1)
 		b.cd:SetCooldown(0, 0)
+		b.count:SetFont("Fonts\\ARIALN.TTF", 14 * fs, "OUTLINE")
 		b.count:SetText("")
+		b.baseRing = { 0.4, 0.45, 0.55 }
+		b.ring:SetVertexColor(0.4, 0.45, 0.55, 1)
 		if i <= n then
 			local slot = def.items[i]
+			local cr, cg, cb = AW.SlotColor(slot) -- the slot's own border colour
+			if cr then
+				b.baseRing = { cr, cg, cb }
+				b.ring:SetVertexColor(cr, cg, cb, 1)
+			end
 			if slot and slot.type == "wheel" and not pageOf[slot.wheel] then slot = nil end -- dangling link
 			if slot and slot.type == "wheel" then
 				b:SetAttribute("subwheel", pageOf[slot.wheel])
 				-- the page name is "page<k>": switch with /click ActionWheelsGo<k>
-				for key, v in pairs(AW.SecureAttributes(slot, string.match(pageOf[slot.wheel], "%d+"))) do b:SetAttribute(key, v) end
-			else
+				if not AW.swap then
+					for key, v in pairs(AW.SecureAttributes(slot, string.match(pageOf[slot.wheel], "%d+"))) do b:SetAttribute(key, v) end
+				end
+			elseif not AW.swap then -- (in swap mode the slices stay inert: a click only chooses the target)
 				for key, v in pairs(AW.SecureAttributes(slot, nil, S.closeMode)) do b:SetAttribute(key, v) end
 			end
 			b:SetWidth(btn)

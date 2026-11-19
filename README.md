@@ -29,6 +29,9 @@ No keyboard needed. All of these work in combat:
 - **Moving and locking:** Shift + drag moves any of the buttons (out of combat). Lock them in Settings or with `/aw launcher lock`. `/aw launcher reset` returns them to their start positions.
 - Click outside the wheel, or the button again, to close it. Set *Opens at: Screen centre* if a button near the screen edge would push the wheel off-screen.
 
+## Editing on the wheel itself
+**Right-click a slice** (out of combat) for a small menu: **Edit slot...** (opens the editor on that slot), **Swap with another slot...** (then left-click the slot to swap with; right-click cancels; it works within one wheel) and **Clear slot**.
+
 ## `#showtooltip` macros
 A macro slot whose text starts with `#showtooltip Aimed Shot` (or just `#showtooltip`, meaning the first `/cast` or `/use`) shows that spell's icon, cooldown, charges, usable / range state and active-buff glow. Conditionals work and are evaluated live while the wheel is open, e.g. `#showtooltip [mod:shift] Hunter's Mark; Aimed Shot`. Remove the line to use your own icon.
 
@@ -36,10 +39,11 @@ A macro slot whose text starts with `#showtooltip Aimed Shot` (or just `#showtoo
 Open the editor (`/aw` or the minimap button), **Wheels** tab:
 - **Drag a spell** from your spellbook, an **item** from your bags or a **macro** onto a slot in the ring. This also works on the real wheel while it is open.
 - Or click a slot and fill in the form: type (Spell / Item / Macro / Pet / Wheel), value, optional label and icon.
-- Use **New / Delete**, the `<` `>` picker and the `-` `+` buttons to manage wheels and their size (4 to 12 slots, up to 8 wheels).
+- Use **New / Delete / Copy wheel**, **Move <  >** (reorders wheels), the `<` `>` picker and the `-` `+` buttons to manage wheels and their size (4 to 12 slots, up to 8 wheels). Reordering changes the paging order and the numbers in `/click ActionWheelsOpen2` macros.
+- Each slot also has a **Border colour** and **Swap <  >** buttons (swap with the previous / next slot).
 - **Opens first when:** a macro condition such as `[mounted]`, `[combat]` or `[stance:1]` makes that wheel open first while it holds. Otherwise the wheel you are editing opens first.
 
-**Settings** tab: open behaviour and position, button size, ring radius, wheel scale, the minimap button, separate wheels for this character, key bindings, restore the starter wheel. **Share** tab: export one or all wheels as text and import them (macros from an import are shown to you first).
+**Look** tab: button size, ring radius, wheel scale, text size, centre-controls size and sounds. **Settings** tab: open behaviour and position, button size, ring radius, wheel scale, the minimap button, separate wheels for this character, key bindings, restore the starter wheel. **Share** tab: export one or all wheels as text and import them (macros from an import are shown to you first).
 
 ### Slash commands
 | Command | Does |
@@ -54,10 +58,29 @@ Open the editor (`/aw` or the minimap button), **Wheels** tab:
 | `/aw wheels`, `/aw wheel new Name` / `select <n>` / `rename Name` / `delete` | Manage wheels |
 | `/aw wheel auto [mounted]` (or `off`) | Open the selected wheel first when a condition holds |
 | `/aw mode hold`, `/aw at center`, `/aw scale 1.2` | Open behaviour and size |
+| `/aw open [first\|last\|<wheel>]` | Open a wheel from chat (out of combat only) |
+| `/aw swap 1 2` | Swap two slots of the current wheel |
+| `/aw wheel move up\|down`, `/aw wheel copy` | Reorder or copy the current wheel |
+| `/aw sounds` | Toggle the soft tick and click sounds |
 | `/aw minimap`, `/aw keys`, `/aw reset` | Minimap button, key bindings, restore the starter wheel |
 
 ## How combat works
 Spells, items and macros are protected in combat, so every slice is a secure action button and the key binding is a secure click handler. Opening, closing, switching wheels and running slices all work in combat. **Editing is locked in combat**: the editor closes when combat starts and changes made by command wait until combat ends.
+
+## Troubleshooting
+| Problem | Try this |
+|---|---|
+| Nothing happens when I press my key | Esc > Key Bindings > AddOns > ActionWheels: check the key is set and not used by another addon (`/aw keys` opens it) |
+| Clicking a slice does nothing | Run `/aw debug` and click once: the chat line shows what the slice received. Check the spell or item name matches your spellbook / bags |
+| The wheel stays open in combat after a spell | By design: the game won't let an addon hide the wheel in combat, and a spell slice waits until it casts. Close it with your key or by clicking outside, or use *Hold* / *Auto* key behaviour (release the key to close), or set *After clicking a spell* to *Close right away* |
+| The active-Aspect highlight is wrong in combat | The game hides buffs from addons in combat, so it follows your own casts and removal events. It corrects itself when combat ends. `/aw buffs` shows what each source reports |
+| An icon is a green box or a question mark | Restart the game fully (new files and icons only load on a restart). For a spell, check the name; `/aw inspect <spell>` shows what the game reports |
+| The wheel opens half off-screen | Set *Opens at: Screen centre* (Settings), or place your open button away from the screen edge |
+| An action bar macro for a wheel opens the wrong one | `/click ActionWheelsOpen<n>` uses the wheel's position in the list; reordering or deleting wheels changes it. Press **Put on action bar** again |
+| **Put on action bar** says the macro list is full | Delete an unused macro, or type `/click ActionWheelsOpenLast` into a macro yourself |
+| I can't edit in combat | By design: editing and the settings window are locked in combat |
+| I want to start over | Settings > **Restore starter wheel** (or `/aw reset`) |
+| Something else looks wrong | `/aw debug` prints slice and click details; open an issue with what it prints |
 
 ## Development
 ```bash

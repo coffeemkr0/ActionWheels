@@ -72,6 +72,8 @@ local function Sanitize(p)
 	local om = p.settings.openMode
 	if om ~= "toggle" and om ~= "hold" and om ~= "auto" then p.settings.openMode = "toggle" end
 	if p.settings.openFirst ~= "selected" and p.settings.openFirst ~= "last" then p.settings.openFirst = "selected" end
+	p.settings.fontScale = math.max(0.7, math.min(2.5, tonumber(p.settings.fontScale) or 1))
+	p.settings.hubScale = math.max(0.8, math.min(2.5, tonumber(p.settings.hubScale) or 1))
 	local cm = p.settings.closeMode
 	if cm ~= "success" and cm ~= "click" and cm ~= "never" then p.settings.closeMode = "success" end
 	if not p.wheels[p.current] then p.current = p.order[1] end
@@ -213,6 +215,58 @@ function AW.NewWheel(p, name)
 	return id
 end
 
+-- Move a wheel one place up (-1) or down (+1) in the order (the order is the paging order and the
+-- number in "/click ActionWheelsOpen<n>").
+function AW.MoveWheel(p, id, delta)
+	for i, v in ipairs(p.order) do
+		if v == id then
+			local j = i + delta
+			if j < 1 or j > #p.order then return false end
+			p.order[i], p.order[j] = p.order[j], p.order[i]
+			return true
+		end
+	end
+	return false
+end
+
+-- A copy of a wheel (its slots, not its on-screen button or auto condition), added at the end.
+function AW.DuplicateWheel(p, id)
+	local src = p.wheels[id]
+	if not src then return nil, "No such wheel." end
+	local new, err = AW.NewWheel(p, src.name .. " copy")
+	if not new then return nil, err end
+	local dst = p.wheels[new]
+	dst.slots = src.slots
+	dst.items = AW.Copy(src.items)
+	return new
+end
+
+-- Swap two slots of a wheel.
+function AW.SwapSlots(p, id, a, b)
+	local w = p.wheels[id]
+	if not w or a == b or a < 1 or b < 1 or a > w.slots or b > w.slots then return false end
+	w.items[a], w.items[b] = w.items[b], w.items[a]
+	return true
+end
+
+-- Open a wheel from a command (out of combat): by clicking its secure opener button.
+function AW.OpenWheel(which)
+	if AW.InCombat() then AW.Print("In combat use your key, a wheel button or an action bar macro.") return false end
+	local p = AW.P()
+	local name
+	if which == nil or which == "" or which == "first" then name = "ActionWheelsOpen"
+	elseif which == "last" then name = "ActionWheelsOpenLast"
+	else
+		local id = AW.FindWheel(p, which)
+		for k, v in ipairs(p.order) do if v == id then name = "ActionWheelsOpen" .. k end end
+	end
+	local btn = name and _G[name]
+	if not btn then AW.Print("No such wheel. See /aw wheels.") return false end
+	local ok = pcall(btn.Click, btn, "LeftButton", true)
+	if not ok then AW.Print("The game would not open the wheel from a command; use your key or a wheel button.") end
+	return ok
+end
+
 function AW.DeleteWheel(p, id)
 	if #p.order <= 1 then return false, "You need at least one wheel." end
 	p.wheels[id] = nil
@@ -299,6 +353,7 @@ local HELP = {
 	"/aw mode toggle|hold|auto   /aw at cursor|center   /aw scale <0.5-2>   /aw close success|click|never",
 	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
 	"/aw launcher [wheel|lock|unlock|reset]   (on-screen buttons: last wheel used / this wheel)",
+	"/aw open [first|last|<wheel>]   /aw swap <a> <b>   /aw sounds   /aw wheel move up|down|copy",
 	"/aw macro [last|first|<wheel>]   makes an action-bar macro for a wheel and puts it on your cursor",
 	"/aw minimap   /aw keys   /aw buffs   /aw inspect <spell>   /aw debug   /aw reset   (restore the starter wheel)",
 	"/aw (no arguments) opens the settings window",
@@ -406,6 +461,16 @@ function AW.Slash(msg)
 			if arg == "" then return AW.Print("Usage: /aw wheel rename <name>") end
 			def.name = arg
 			return done(true, "renamed to '" .. arg .. "'")
+		elseif sub == "move" then
+			local d = (string.lower(arg) == "up") and -1 or ((string.lower(arg) == "down") and 1 or nil)
+			if not d then return AW.Print("Usage: /aw wheel move up|down") end
+			if not AW.MoveWheel(p, p.current, d) then return AW.Print("It can't move any further that way.") end
+			return done(true, "moved '" .. def.name .. "' " .. string.lower(arg) .. " (macros like /click ActionWheelsOpen2 use the new numbers)")
+		elseif sub == "copy" then
+			local id, err = AW.DuplicateWheel(p, p.current)
+			if not id then return AW.Print(err) end
+			p.current = id
+			return done(true, "copied to '" .. p.wheels[id].name .. "' and selected it")
 		elseif sub == "auto" then
 			if arg == "" or string.lower(arg) == "off" then
 				def.auto = nil
@@ -422,7 +487,7 @@ function AW.Slash(msg)
 			if not ok then return AW.Print(err) end
 			return done(true, "deleted '" .. gone .. "'")
 		end
-		AW.Print("Usage: /aw wheel new <name> | select <name or number> | rename <name> | auto <[condition]|off> | delete")
+		AW.Print("Usage: /aw wheel new <name> | select <name or number> | rename <name> | move up|down | copy | auto <[condition]|off> | delete")
 	elseif cmd == "minimap" then
 		ActionWheelsDB.minimap.hide = not ActionWheelsDB.minimap.hide
 		if AW.UpdateMinimap then AW.UpdateMinimap() end
@@ -457,6 +522,17 @@ function AW.Slash(msg)
 		AW.PlaceLaunchers()
 		if AW.RefreshConfig then AW.RefreshConfig() end
 		return AW.Print(what .. "  (Shift + drag moves a button)")
+	elseif cmd == "swap" then
+		local a, b = string.match(rest, "^(%d+)%s+(%d+)$")
+		if not (a and AW.SwapSlots(p, p.current, tonumber(a), tonumber(b))) then
+			return AW.Print("Usage: /aw swap <slot> <slot>  (two different slots of this wheel)")
+		end
+		return done(true, "swapped slots " .. a .. " and " .. b)
+	elseif cmd == "open" then
+		AW.OpenWheel(rest)
+	elseif cmd == "sounds" then
+		p.settings.sounds = not p.settings.sounds
+		return AW.Print("sounds " .. (p.settings.sounds and "on" or "off"))
 	elseif cmd == "macro" then
 		local which = (rest == "") and "last" or rest
 		if which ~= "last" and which ~= "first" then which = AW.FindWheel(p, rest) end

@@ -118,6 +118,7 @@ function AW.SanitizeSlot(s)
 	if not o then return nil end
 	o.label = str(s.label, 24)
 	o.icon = SanitizeIcon(s.icon)
+	if type(s.color) == "string" and AW.COLOR_RGB[s.color] then o.color = s.color end
 	return o
 end
 

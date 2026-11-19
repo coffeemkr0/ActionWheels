@@ -643,6 +643,109 @@ eq(_G.ActionWheelsRoot:GetAttribute("wheelrev"), 1, "reversed")
 AW.Slash("scroll reverse")
 eq(_G.ActionWheelsRoot:GetAttribute("wheelrev"), 0, "back to normal")
 
+-- ===== ReactWheel-inspired additions =====
+AW.Slash("reset")
+-- colours
+eq(AW.SlotColor({ color = "green" }), 0.3, "slot colour lookup")
+eq(AW.SlotColor({ color = "mauve" }), nil, "unknown colour ignored")
+eq(AW.SlotColor(nil), nil, "no slot, no colour")
+local cimp = AW.PreviewImport(AW.Serialize({ v = 1, wheels = { { name = "C", slots = 4, items = { { type = "pet", pet = "attack", color = "red" }, { type = "pet", pet = "follow", color = "evil" } } } } }))
+eq(cimp.wheels[1].items[1].color, "red", "a known colour is imported")
+eq(cimp.wheels[1].items[2].color, nil, "an unknown colour is dropped")
+AW.P().wheels.main.items[1].color = "gold"
+AW.ApplyLayout()
+eq(_G.ActionWheelsP1S1.baseRing[1], 1, "slice border follows the slot colour (r)")
+eq(_G.ActionWheelsP1S1.baseRing[3], 0.1, "slice border follows the slot colour (b)")
+eq(_G.ActionWheelsP1S2.baseRing[1], 0.4, "uncoloured slots keep the default border")
+-- reorder / copy wheels
+AW.Slash("wheel new Two")
+AW.Slash("wheel new Three")
+local p = AW.P()
+eq(p.order[3], "w3", "order before move")
+AW.Slash("wheel move up")
+eq(p.order[2], "w3", "wheel moved up")
+eq(p.order[3], "w2", "its neighbour moved down")
+AW.Slash("wheel move up")
+AW.Slash("wheel move up")
+eq(p.order[1], "w3", "moved to the top")
+AW.Slash("wheel move up")
+eq(p.order[1], "w3", "can't move past the top")
+eq(_G.ActionWheelsPage1:GetAttribute("next"), "page2", "paging follows the new order")
+AW.Slash("wheel select main")
+AW.Slash("wheel copy")
+eq(#p.order, 4, "wheel copied")
+eq(p.wheels[p.current].name, "Main copy", "copy is named and selected")
+eq(p.wheels[p.current].items[1].pet, "attack", "copy has the slots")
+eq(p.wheels[p.current].items[1] ~= p.wheels.main.items[1], true, "and they are independent tables")
+for _ = 1, 8 do AW.Slash("wheel copy") end
+eq(#p.order, AW.MAXWHEELS, "copies stop at the wheel limit")
+AW.Slash("reset")
+p = AW.P()
+-- swap slots
+AW.P().wheels.main.items[1] = { type = "spell", spell = "A" }
+AW.P().wheels.main.items[2] = { type = "spell", spell = "B" }
+AW.Slash("swap 1 2")
+eq(AW.P().wheels.main.items[1].spell, "B", "slots swapped"); eq(AW.P().wheels.main.items[2].spell, "A", "both ways")
+AW.Slash("swap 1 1")
+eq(AW.P().wheels.main.items[1].spell, "B", "swapping a slot with itself does nothing")
+AW.Slash("swap 1 99")
+eq(AW.P().wheels.main.items[1].spell, "B", "out-of-range swap rejected")
+-- swap mode from the wheel menu
+AW.P().wheels.main.items[3] = nil
+AW.ApplyLayout()
+local s1, s2 = _G.ActionWheelsP1S1, _G.ActionWheelsP1S2
+s1.page.wheelId = "main"
+AW.BeginSwap(s1)
+eq(AW.swap ~= nil, true, "swap mode on")
+eq(s2:GetAttribute("macrotext"), nil, "slices are inert in swap mode")
+AW.FinishSwap(s2)
+eq(AW.swap, nil, "swap mode off")
+eq(AW.P().wheels.main.items[1].spell, "A", "swapped through the wheel")
+eq(s1:GetAttribute("macrotext") ~= nil, true, "slices work again afterwards")
+AW.BeginSwap(s1); AW.CancelSwap()
+eq(AW.swap, nil, "cancel leaves everything as it was")
+-- menu builds, and refuses in combat
+AW.ShowSlotMenu(s1)
+_COMBAT = true
+AW.ShowSlotMenu(s1)
+_COMBAT = false
+AW.HideSlotMenu()
+-- edit-slot from the wheel opens the editor on that slot
+AW.HideConfig()
+AW.EditSlot("main", 2)
+eq(AW.ConfigShown(), true, "Edit slot opens the editor")
+AW.HideConfig()
+-- open from a command
+local clicked
+AW.Slash("wheel new Extra")
+_G.ActionWheelsOpen2.Click = function(self, b, d) clicked = "2" end
+_G.ActionWheelsOpenLast.Click = function(self, b, d) clicked = "last" end
+_G.ActionWheelsOpen.Click = function(self, b, d) clicked = "first" end
+AW.Slash("open 2"); eq(clicked, "2", "/aw open <number>")
+AW.Slash("open Extra"); eq(clicked, "2", "/aw open <name>")
+AW.Slash("open last"); eq(clicked, "last", "/aw open last")
+AW.Slash("open"); eq(clicked, "first", "/aw open")
+clicked = nil
+_COMBAT = true
+AW.Slash("open 2"); eq(clicked, nil, "no opening by command in combat")
+_COMBAT = false
+AW.Slash("open nowhere"); eq(clicked, nil, "unknown wheel")
+-- sounds
+local played = 0
+PlaySound = function() played = played + 1 end
+AW.Sound("hover"); eq(played, 0, "sounds are off by default")
+AW.Slash("sounds")
+AW.Sound("hover"); AW.Sound("use")
+eq(played, 2, "sounds play when on")
+AW.Slash("sounds"); PlaySound = nil
+-- sizes
+ActionWheelsDB.profile.settings.fontScale, ActionWheelsDB.profile.settings.hubScale = 9, 0
+AW.InitDB()
+eq(AW.P().settings.fontScale, 2.5, "text size clamped"); eq(AW.P().settings.hubScale, 0.8, "centre size clamped")
+AW.P().settings.hubScale, AW.P().settings.fontScale = 2, 1.5
+eq(pcall(AW.ApplyLayout), true, "layout copes with larger text and centre sizes")
+AW.Slash("reset")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")

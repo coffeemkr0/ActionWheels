@@ -189,6 +189,7 @@ local function RefreshWheels()
 		end
 	end
 	LoadForm()
+	if frame.refreshColor then frame.refreshColor() end
 end
 
 local function SelectSlot(i)
@@ -317,7 +318,25 @@ local function BuildWheelsTab(t)
 		local _, id = Cur()
 		AW.MakeActionBarMacro(id)
 	end)
-	Text(t, "(Shift + drag moves the button; the macro goes on your cursor)", 4, -86, "GameFontDisableSmall")
+	Button(t, "Move <", 4, -84, 64, function()
+		if Locked() then return end
+		local p = AW.P()
+		if AW.MoveWheel(p, p.current, -1) then AW.ApplyLayout(); RefreshWheels() end
+	end)
+	Button(t, "Move >", 72, -84, 64, function()
+		if Locked() then return end
+		local p = AW.P()
+		if AW.MoveWheel(p, p.current, 1) then AW.ApplyLayout(); RefreshWheels() end
+	end)
+	Button(t, "Copy wheel", 140, -84, 90, function()
+		if Locked() then return end
+		local p = AW.P()
+		local id, err = AW.DuplicateWheel(p, p.current)
+		if not id then AW.Print(err) return end
+		p.current = id
+		AW.ApplyLayout(); sel = 1; RefreshWheels()
+	end)
+	Text(t, "(buttons: Shift + drag moves them)", 240, -88, "GameFontDisableSmall")
 
 	-- preview ring
 	frame.ring = CreateFrame("Frame", nil, t)
@@ -382,8 +401,50 @@ local function BuildWheelsTab(t)
 		frame.status:SetText("")
 		AW.ApplyLayout(); RefreshWheels()
 	end)
-	frame.status = Text(t, "", 310, -324, "GameFontHighlightSmall", 236)
+	-- border colour of this slot
+	local colorOptions = { { "none", "None" } }
+	for _, nm in ipairs(AW.COLOR_ORDER) do colorOptions[#colorOptions + 1] = { nm, string.upper(string.sub(nm, 1, 1)) .. string.sub(nm, 2) } end
+	Cycle(t, "Border colour", 310, -320, colorOptions,
+		function()
+			local _, _, def = Cur()
+			local sl = def.items[sel]
+			return (sl and sl.color) or "none"
+		end,
+		function(v)
+			local _, _, def = Cur()
+			local sl = def.items[sel]
+			if not sl then return end
+			sl.color = (v ~= "none") and v or nil
+		end, 80, 90)
+	frame.refreshColor = refreshers[#refreshers]
+	Button(t, "Swap <", 310, -350, 70, function()
+		if Locked() then return end
+		local _, id, def = Cur()
+		local other = (sel - 2) % def.slots + 1
+		if AW.SwapSlots(AW.P(), id, sel, other) then sel = other; AW.ApplyLayout(); RefreshWheels() end
+	end)
+	Button(t, "Swap >", 384, -350, 70, function()
+		if Locked() then return end
+		local _, id, def = Cur()
+		local other = sel % def.slots + 1
+		if AW.SwapSlots(AW.P(), id, sel, other) then sel = other; AW.ApplyLayout(); RefreshWheels() end
+	end)
+	frame.status = Text(t, "", 458, -352, "GameFontHighlightSmall", 90)
 	refreshers[#refreshers + 1] = RefreshWheels
+end
+
+-- Open the editor on a given slot (the wheel's right-click menu uses this).
+function AW.EditSlot(wheelId, idx)
+	if AW.InCombat() then AW.Print("Editing is locked during combat.") return end
+	local p = AW.P()
+	if not p.wheels[wheelId] then return end
+	p.current = wheelId
+	AW.ApplyLayout()
+	if not frame then AW.BuildConfig() end
+	sel = idx
+	RefreshAll()
+	AW.SelectConfigTab(1)
+	frame:Show()
 end
 
 ---------------------------------------------------------------------------
@@ -399,14 +460,10 @@ local function BuildSettingsTab(t)
 		function() return S().closeMode end, function(v) S().closeMode = v end, 190, 140)
 	Cycle(t, "The key opens", 20, -122, { { "selected", "The wheel I'm editing" }, { "last", "The last wheel I used" } },
 		function() return S().openFirst end, function(v) S().openFirst = v end, 190, 140)
-	Text(t, "Look", 10, -164)
-	Slider(t, "Button size", 20, -196, 40, 110, 1, function() return S().buttonSize end, function(v) S().buttonSize = v end)
-	Slider(t, "Minimum ring radius", 20, -236, 70, 200, 1, function() return S().radius end, function(v) S().radius = v end)
-	Slider(t, "Whole wheel scale", 20, -276, 0.6, 2, 0.05, function() return S().scale end, function(v) S().scale = v end, "%.2f")
-	Check(t, "Mouse wheel switches wheels", 14, -306,
+	Check(t, "Mouse wheel switches wheels", 14, -160,
 		function() return S().wheelScroll end,
 		function(v) if Locked() then return end S().wheelScroll = v; OnChanged() end)
-	Check(t, "Reverse the mouse wheel direction", 14, -332,
+	Check(t, "Reverse the mouse wheel direction", 14, -186,
 		function() return S().wheelReverse end,
 		function(v) if Locked() then return end S().wheelReverse = v; OnChanged() end)
 	Text(t, "Other", 280, -134)
@@ -454,6 +511,21 @@ local function BuildSettingsTab(t)
 		RefreshAll()
 	end)
 	Text(t, "Wheels edited in the Wheels tab. Key: Esc > Key Bindings > AddOns > ActionWheels.", 10, -366, "GameFontHighlightSmall", 500)
+end
+
+---------------------------------------------------------------------------
+-- Look tab
+---------------------------------------------------------------------------
+local function BuildLookTab(t)
+	Text(t, "Size and feel", 10, -8)
+	Slider(t, "Button size", 20, -40, 40, 110, 1, function() return S().buttonSize end, function(v) S().buttonSize = v end)
+	Slider(t, "Minimum ring radius", 20, -80, 70, 200, 1, function() return S().radius end, function(v) S().radius = v end)
+	Slider(t, "Whole wheel scale", 20, -120, 0.6, 2, 0.05, function() return S().scale end, function(v) S().scale = v end, "%.2f")
+	Slider(t, "Text size", 20, -160, 0.7, 2.5, 0.1, function() return S().fontScale end, function(v) S().fontScale = v end, "%.1f")
+	Slider(t, "Centre controls size", 20, -200, 0.8, 2.5, 0.1, function() return S().hubScale end, function(v) S().hubScale = v end, "%.1f")
+	Check(t, "Play sounds (a soft tick between slices, a click on use)", 14, -240,
+		function() return S().sounds end, function(v) if Locked() then return end S().sounds = v end)
+	Text(t, "The ring grows by itself when the buttons need more room.", 20, -276, "GameFontHighlightSmall", 480)
 end
 
 ---------------------------------------------------------------------------
@@ -546,8 +618,8 @@ local function Build()
 	frame:Hide()
 	tinsert(UISpecialFrames, "ActionWheelsConfig")
 
-	local names = { "Wheels", "Settings", "Share" }
-	local builders = { BuildWheelsTab, BuildSettingsTab, BuildShareTab }
+	local names = { "Wheels", "Settings", "Look", "Share" }
+	local builders = { BuildWheelsTab, BuildSettingsTab, BuildLookTab, BuildShareTab }
 	for i, n in ipairs(names) do
 		local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 		b:SetWidth(92)
@@ -564,6 +636,9 @@ local function Build()
 		builders[i](t)
 	end
 end
+
+AW.BuildConfig = function() Build() end
+AW.SelectConfigTab = function(i) SelectTab(i) end
 
 function AW.ConfigShown() return frame and frame:IsShown() or false end
 

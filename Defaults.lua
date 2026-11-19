@@ -11,6 +11,9 @@ AW.DEFAULT_SETTINGS = {
 	openFirst = "selected", -- which wheel the key opens: "selected" (the one being edited) or "last" (last used)
 	wheelScroll = true,     -- the mouse wheel switches wheels while the wheel is open
 	wheelReverse = false,   -- reverse the scroll direction
+	fontScale = 1,          -- size of the text on the wheel (0.7-2.5)
+	hubScale = 1,           -- size of the centre hub and its controls (0.8-2.5)
+	sounds = false,         -- soft tick moving between slices, click on use
 	closeMode = "success", -- after a click: "success" (spells stay open until they cast), "click", "never"
 }
 

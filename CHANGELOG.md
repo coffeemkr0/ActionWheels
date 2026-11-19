@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.13.0
+Ideas taken from ReactWheel:
+- **Right-click a slice on the wheel** for *Edit slot...*, *Swap with another slot...* and *Clear slot* (out of combat).
+- **Reorder and copy wheels:** editor buttons *Move <*, *Move >* and *Copy wheel*, plus `/aw wheel move up|down` and `/aw wheel copy`. Slots also swap with their neighbours (*Swap <  >*, `/aw swap a b`).
+- **Border colour per slot** (None, White, Green, Red, Pink, Blue, Gold, Purple). Imported wheels keep colours.
+- **Sounds:** an optional soft tick between slices and a click on use (Look tab, `/aw sounds`). Off by default.
+- **Text size and centre-controls size** sliders in a new **Look** tab (which now also holds button size, ring radius and wheel scale).
+- **`/aw open [first|last|<wheel>]`** opens a wheel from chat, out of combat.
+- README gets a Troubleshooting table.
+
 ## 0.12.0
 - **The key can open the last wheel you used** (Settings > *The key opens*, or `/aw opens last`). The default is still the wheel you are editing. An auto-open condition such as `[mounted]` still wins while it holds.
 - **Mouse wheel switches wheels** while the wheel is open (scroll up = previous). Works in combat. Settings has an on/off switch and a *reverse direction* option (`/aw scroll on|off|reverse`). When switched off the mouse wheel passes through to the game again (camera zoom).
