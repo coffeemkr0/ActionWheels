@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.1
+- **Active slices look like the built-in action bars.** A slice whose buff is on (for example your active Aspect) now gets the game's own gold "checked" highlight over the icon and a gold frame, instead of the green ring.
+
 ## 0.5.0
 - **`#showtooltip` for macro slots.** A macro slot whose text has `#showtooltip Spell` (or `/showtooltip`, or a bare `#showtooltip` meaning the first `/cast` or `/use`) now shows that spell's or item's icon, cooldown, charges, usable and range state, and the active-buff glow. Conditionals such as `#showtooltip [mod:shift] Spell A; Spell B` are evaluated live while the wheel is open. Remove the line to use a custom icon.
 
@@ -24,7 +27,7 @@
 - **Fix: errors in combat** ("attempt to compare ... a secret number value"). In combat the game hides cooldown numbers from addons. ActionWheels now hands them straight to the cooldown swirl without comparing them, ignores charges / usable / range when the game hides those too, and can no longer raise an error from the live display.
 
 ## 0.4.0
-- **Active buffs are highlighted.** A spell slice whose buff is on you (for example your current Hunter Aspect) gets a bright green ring and a soft glow while the wheel is open.
+- **Active buffs are highlighted.** A spell slice whose buff is on you (for example your current Hunter Aspect) gets the action bar's gold "checked" highlight and frame while the wheel is open.
 
 ## 0.3.3
 - The wheel now also closes from plain Lua after a click when you are out of combat (the secure close step did not work in testing). In combat it still relies on the secure step; `/aw debug` now shows whether that step ran.

@@ -103,10 +103,11 @@ local function BuildSlice(page, i)
 	b.ring:SetAllPoints(b)
 	b.ring:SetTexture(TEX .. "Ring")
 	b.ring:SetVertexColor(0.4, 0.45, 0.55, 1)
+	-- "checked" look of the built-in action bars: the game's own additive highlight over the icon
 	b.glow = b:CreateTexture(nil, "ARTWORK", nil, 2)
-	b.glow:SetAllPoints(b)
-	b.glow:SetTexture(TEX .. "Circle")
-	b.glow:SetVertexColor(0.3, 1, 0.45, 0.28)
+	b.glow:SetPoint("CENTER", b, "CENTER", 0, 0)
+	b.glow:SetTexture("Interface\\Buttons\\CheckButtonHilight")
+	b.glow:SetBlendMode("ADD")
 	b.glow:Hide()
 	b.hl = b:CreateTexture(nil, "OVERLAY")
 	b.hl:SetAllPoints(b)
@@ -302,9 +303,9 @@ local function Paint(b, slot)
 	else
 		b.count:SetText("")
 	end
-	-- buff on you (the active Aspect, etc.): bright green ring and a soft glow
+	-- buff on you (the active Aspect, etc.): gold frame plus the action bar's checked highlight
 	if st.active then
-		b.ring:SetVertexColor(0.3, 1, 0.45, 1)
+		b.ring:SetVertexColor(1, 0.82, 0.1, 1)
 		b.glow:Show()
 	else
 		b.ring:SetVertexColor(0.4, 0.45, 0.55, 1)
@@ -378,6 +379,8 @@ local function LayoutPage(page, id, k, count, targets)
 			b:SetHeight(btn)
 			b.icon:SetWidth(btn - 14)
 			b.icon:SetHeight(btn - 14)
+			b.glow:SetWidth(btn - 8)
+			b.glow:SetHeight(btn - 8)
 			b.cd:SetWidth(btn - 14)
 			b.cd:SetHeight(btn - 14)
 			local a = (i - 1) * step -- clockwise from the top
