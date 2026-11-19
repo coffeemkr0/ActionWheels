@@ -167,6 +167,7 @@ local function RefreshWheels()
 	frame.pos:SetText(pos .. "/" .. #p.order)
 	frame.wheelName:SetText(def.name)
 	frame.autoBox:SetText(def.auto or "")
+	frame.wheelBtn:SetChecked(def.launcher and def.launcher.show and true or false)
 	frame.slotCount:SetText(def.slots .. " slots")
 	if sel > def.slots then sel = def.slots end
 	local n = def.slots
@@ -297,11 +298,32 @@ local function BuildWheelsTab(t)
 	end)
 	Text(t, "e.g. [mounted]  [combat]  [stance:1]", 358, -38, "GameFontDisableSmall")
 
+	-- on-screen button and action-bar macro for this wheel
+	local wcName = Name("WheelBtn")
+	local wc = CreateFrame("CheckButton", wcName, t, "UICheckButtonTemplate")
+	wc:SetPoint("TOPLEFT", t, "TOPLEFT", 0, -58)
+	local wct = _G[wcName .. "Text"]
+	if wct then wct:SetText("Movable on-screen button for this wheel") end
+	wc:SetScript("OnClick", function()
+		if loading or Locked() then wc:SetChecked(not wc:GetChecked()) return end
+		local _, _, def = Cur()
+		def.launcher = def.launcher or {}
+		def.launcher.show = wc:GetChecked() and true or false
+		AW.PlaceLaunchers()
+	end)
+	frame.wheelBtn = wc
+	Button(t, "Put on action bar", 330, -60, 130, function()
+		if Locked() then return end
+		local _, id = Cur()
+		AW.MakeActionBarMacro(id)
+	end)
+	Text(t, "(Shift + drag moves the button; the macro goes on your cursor)", 4, -86, "GameFontDisableSmall")
+
 	-- preview ring
 	frame.ring = CreateFrame("Frame", nil, t)
 	frame.ring:SetWidth(10)
 	frame.ring:SetHeight(10)
-	frame.ring:SetPoint("TOPLEFT", t, "TOPLEFT", 150, -205)
+	frame.ring:SetPoint("TOPLEFT", t, "TOPLEFT", 150, -233)
 	for i = 1, AW.MAXSLOTS do
 		local b = CreateFrame("Button", nil, t)
 		b:SetWidth(42)
@@ -329,38 +351,38 @@ local function BuildWheelsTab(t)
 		b:SetScript("OnClick", function() if not onDrop() then SelectSlot(i) end end)
 		ringButtons[i] = b
 	end
-	local hint = Text(t, "Drag a spell, item or macro onto a slot, or pick a slot and fill in the form.", 4, -352, "GameFontHighlightSmall", 280)
+	local hint = Text(t, "Drag a spell, item or macro onto a slot, or pick a slot and fill in the form.", 4, -380, "GameFontHighlightSmall", 280)
 
 	-- slot form
-	frame.slotTitle = Text(t, "Slot 1", 310, -70, "GameFontNormal", 240)
+	frame.slotTitle = Text(t, "Slot 1", 310, -98, "GameFontNormal", 240)
 	frame.kindButtons = {}
 	for i, k in ipairs(KINDS) do
 		local b = CreateFrame("Button", nil, t, "UIPanelButtonTemplate")
 		b:SetWidth(46)
 		b:SetHeight(22)
-		b:SetPoint("TOPLEFT", t, "TOPLEFT", 310 + (i - 1) * 48, -96)
+		b:SetPoint("TOPLEFT", t, "TOPLEFT", 310 + (i - 1) * 48, -124)
 		b:SetText(k[2])
 		b:SetScript("OnClick", function() formKind = k[1]; LoadForm() end)
 		frame.kindButtons[i] = b
 	end
-	Text(t, "Value", 310, -126, "GameFontNormalSmall")
-	frame.valueBox = Edit(t, 310, -142, 230)
+	Text(t, "Value", 310, -154, "GameFontNormalSmall")
+	frame.valueBox = Edit(t, 310, -170, 230)
 	frame.valueBox:SetMaxLetters(255)
-	frame.hint = Text(t, "", 310, -168, "GameFontHighlightSmall", 236)
-	Text(t, "Label (optional)", 310, -214, "GameFontNormalSmall")
-	frame.labelBox = Edit(t, 310, -230, 110)
+	frame.hint = Text(t, "", 310, -196, "GameFontHighlightSmall", 236)
+	Text(t, "Label (optional)", 310, -242, "GameFontNormalSmall")
+	frame.labelBox = Edit(t, 310, -258, 110)
 	frame.labelBox:SetMaxLetters(24)
-	Text(t, "Icon (optional)", 430, -214, "GameFontNormalSmall")
-	frame.iconBox = Edit(t, 430, -230, 110)
-	Button(t, "Save slot", 310, -264, 100, SaveForm)
-	Button(t, "Clear slot", 416, -264, 100, function()
+	Text(t, "Icon (optional)", 430, -242, "GameFontNormalSmall")
+	frame.iconBox = Edit(t, 430, -258, 110)
+	Button(t, "Save slot", 310, -292, 100, SaveForm)
+	Button(t, "Clear slot", 416, -292, 100, function()
 		if Locked() then return end
 		local _, _, def = Cur()
 		def.items[sel] = nil
 		frame.status:SetText("")
 		AW.ApplyLayout(); RefreshWheels()
 	end)
-	frame.status = Text(t, "", 310, -296, "GameFontHighlightSmall", 236)
+	frame.status = Text(t, "", 310, -324, "GameFontHighlightSmall", 236)
 	refreshers[#refreshers + 1] = RefreshWheels
 end
 
@@ -392,17 +414,21 @@ local function BuildSettingsTab(t)
 			sel = 1
 			RefreshAll()
 		end)
-	Check(t, "Show an on-screen open button", 276, -216,
+	Check(t, "Show a 'last wheel' on-screen button", 276, -216,
 		function() return not ActionWheelsDB.launcher.hide end,
 		function(v)
 			if Locked() then return end
 			ActionWheelsDB.launcher.hide = not v
-			AW.PlaceLauncher()
+			AW.PlaceLaunchers()
 		end)
 	Check(t, "Lock its position (Shift+drag moves)", 276, -242,
 		function() return ActionWheelsDB.launcher.locked end,
 		function(v) ActionWheelsDB.launcher.locked = v end)
-	Button(t, "Key bindings...", 280, -276, 140, function() AW.OpenKeyBindings() end)
+	Button(t, "Key bindings...", 280, -276, 110, function() AW.OpenKeyBindings() end)
+	Button(t, "Last wheel -> bar", 396, -276, 140, function()
+		if Locked() then return end
+		AW.MakeActionBarMacro("last")
+	end)
 	local reset = Button(t, "Restore starter wheel", 280, -306, 160, nil)
 	reset:SetScript("OnClick", function()
 		if Locked() then return end
@@ -419,7 +445,7 @@ local function BuildSettingsTab(t)
 		sel = 1
 		RefreshAll()
 	end)
-	Text(t, "Open from an action bar: make a macro with", 10, -318, "GameFontNormalSmall")
+	Text(t, "Or make a macro yourself (any bar):", 10, -318, "GameFontNormalSmall")
 	local mac = CreateFrame("EditBox", nil, t, "InputBoxTemplate")
 	mac:SetWidth(200)
 	mac:SetHeight(20)
@@ -428,7 +454,7 @@ local function BuildSettingsTab(t)
 	mac:SetText("/click ActionWheelsOpen")
 	mac:SetScript("OnEditFocusLost", function() mac:SetText("/click ActionWheelsOpen") end)
 	mac:SetScript("OnEscapePressed", function() mac:ClearFocus() end)
-	Text(t, "and put it on a bar. (ActionWheelsOpen2, 3... open a specific wheel.)", 224, -338, "GameFontHighlightSmall", 300)
+	Text(t, "/click ActionWheelsOpenLast  (last wheel)  or  ...Open2, 3  (a wheel)", 224, -338, "GameFontHighlightSmall", 300)
 	Text(t, "Wheels edited in the Wheels tab. Key: Esc > Key Bindings > AddOns > ActionWheels.", 10, -366, "GameFontHighlightSmall", 500)
 end
 

@@ -562,6 +562,62 @@ AW.OnEvent(nil, "PLAYER_REGEN_ENABLED")
 eq(_G.ActionWheelsLauncher:IsShown(), true, "and applies after combat")
 AW.Slash("launcher")
 
+-- last wheel, per-wheel buttons, action bar macros
+AW.Slash("reset")
+eq(_G.ActionWheelsLauncher:GetAttribute("target"), "last", "the on-screen button opens the last wheel used")
+eq(_G.ActionWheelsOpenLast:GetAttribute("target"), "last", "last-wheel macro opener exists")
+eq(string.find(_G.ActionWheelsOpen:GetAttribute("_onclick"), 'target == "last"', 1, true) ~= nil, true, "opener snippet understands 'last'")
+eq(string.find(_G.ActionWheelsRoot:GetAttribute("gopage"), 'SetAttribute("last"', 1, true) ~= nil, true, "switching pages records the last wheel")
+eq(_G.ActionWheelsLauncher2:GetAttribute("target"), "page2", "per-wheel button targets its wheel")
+AW.Slash("wheel new Second")
+AW.Slash("wheel select 1")
+AW.Slash("launcher wheel")
+eq(AW.P().wheels.main.launcher.show, true, "wheel 1 gets its own button")
+eq(_G.ActionWheelsLauncher1:IsShown(), true, "its button is visible")
+eq(_G.ActionWheelsLauncher2:IsShown(), false, "wheel 2 has none yet")
+AW.Slash("wheel select 2")
+AW.Slash("launcher wheel")
+eq(_G.ActionWheelsLauncher2:IsShown(), true, "wheel 2's button appears")
+-- positions are per wheel
+local d1 = AW.LauncherData(_G.ActionWheelsLauncher1, true)
+d1.x, d1.y = 111, 222
+local d2 = AW.LauncherData(_G.ActionWheelsLauncher2, true)
+eq(d2.x, nil, "each wheel keeps its own position")
+AW.PlaceLaunchers()
+AW.Slash("launcher reset")
+eq(AW.P().wheels.main.launcher.x, nil, "reset clears every button's position")
+eq(AW.P().wheels.main.launcher.show, true, "but keeps them visible")
+-- deleting a wheel removes its button
+AW.Slash("wheel delete")
+eq(_G.ActionWheelsLauncher2:IsShown(), false, "a deleted wheel's button goes away")
+-- exports never carry buttons
+local ex = AW.PreviewImport(AW.ExportWheels({ "main" }))
+eq(ex.wheels[1].launcher, nil, "launcher buttons are not exported")
+-- macros
+eq(select(2, AW.OpenMacroFor("last")), "/click ActionWheelsOpenLast", "macro for the last wheel")
+eq(select(2, AW.OpenMacroFor("first")), "/click ActionWheelsOpen", "macro for the first wheel")
+eq(select(2, AW.OpenMacroFor("main")), "/click ActionWheelsOpen1", "macro for a specific wheel")
+eq(AW.OpenMacroFor("nope"), nil, "no macro for an unknown wheel")
+local made, picked, edited = {}, nil, nil
+GetMacroIndexByName = function(n) return made[n] or 0 end
+CreateMacro = function(n, icon, body, isLocal) made[n] = 5; made.body = body; return 5 end
+EditMacro = function(i, n, icon, body) edited = body end
+PickupMacro = function(i) picked = i end
+eq(AW.MakeActionBarMacro("last"), true, "macro created")
+eq(made.body, "/click ActionWheelsOpenLast", "with the right body")
+eq(picked, 5, "and put on the cursor")
+picked = nil
+eq(AW.MakeActionBarMacro("last"), true, "second time updates the existing macro")
+eq(edited, "/click ActionWheelsOpenLast", "edited, not duplicated")
+_COMBAT = true
+eq(AW.MakeActionBarMacro("last"), false, "no macro making in combat")
+_COMBAT = false
+CreateMacro = function() return nil end
+eq(AW.MakeActionBarMacro("first"), false, "a full macro list is reported, not an error")
+GetMacroIndexByName, CreateMacro, EditMacro, PickupMacro = nil, nil, nil, nil
+eq(AW.MakeActionBarMacro("first"), false, "no macro API: the line is printed instead")
+AW.Slash("macro first")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")

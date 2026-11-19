@@ -117,6 +117,51 @@ function AW.DropOnSlot(wheelId, idx)
 end
 
 ---------------------------------------------------------------------------
+-- Action bar macros: a frame can't be dragged onto a bar, but a macro that /click's it can.
+-- which = "last" (the last wheel you used), "first" (the wheel that opens first) or a wheel id.
+-- The macro is created (or updated) and put on the cursor; the player drops it on a bar slot.
+---------------------------------------------------------------------------
+function AW.OpenMacroFor(which)
+	local p = AW.P()
+	if which == "last" then return "AW Last", "/click ActionWheelsOpenLast" end
+	if which == "first" then return "AW Open", "/click ActionWheelsOpen" end
+	for k, id in ipairs(p.order) do
+		if id == which then
+			local nm = "AW " .. string.sub(p.wheels[id].name, 1, 12)
+			return nm, "/click ActionWheelsOpen" .. k
+		end
+	end
+end
+
+function AW.MakeActionBarMacro(which)
+	if AW.InCombat() then AW.Print("Macros can't be made during combat.") return false end
+	local name, body = AW.OpenMacroFor(which)
+	if not name then AW.Print("No such wheel.") return false end
+	if not (CreateMacro and PickupMacro and GetMacroIndexByName) then
+		AW.Print("Make a macro yourself with this line and put it on a bar: " .. body)
+		return false
+	end
+	local icon = "INV_Misc_Map_01"
+	local idx = GetMacroIndexByName(name)
+	if idx and idx > 0 then
+		EditMacro(idx, name, icon, body)
+	else
+		local ok, made = pcall(CreateMacro, name, icon, body, false)
+		if not ok or not made then
+			ok, made = pcall(CreateMacro, name, icon, body, true) -- account macros full: use this character's
+		end
+		if not ok or not made then
+			AW.Print("Couldn't create a macro (the macro list may be full). Make one yourself with: " .. body)
+			return false
+		end
+		idx = made
+	end
+	PickupMacro(idx)
+	AW.Print("Macro '" .. name .. "' is on your cursor: click an action bar slot to drop it there.")
+	return true
+end
+
+---------------------------------------------------------------------------
 -- Key bindings and the settings window
 ---------------------------------------------------------------------------
 function AW.OpenKeyBindings()
@@ -251,8 +296,8 @@ local HELP = {
 	"/aw clear <slot>   /aw list   /aw slots <4-12>",
 	"/aw mode toggle|hold|auto   /aw at cursor|center   /aw scale <0.5-2>   /aw close success|click|never",
 	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
-	"/aw launcher [lock|unlock|reset]   (small on-screen button that opens the wheel)",
-	"/click ActionWheelsOpen   in a macro on an action bar opens the wheel (…Open2 = 2nd wheel)",
+	"/aw launcher [wheel|lock|unlock|reset]   (on-screen buttons: last wheel used / this wheel)",
+	"/aw macro [last|first|<wheel>]   makes an action-bar macro for a wheel and puts it on your cursor",
 	"/aw minimap   /aw keys   /aw buffs   /aw inspect <spell>   /aw debug   /aw reset   (restore the starter wheel)",
 	"/aw (no arguments) opens the settings window",
 }
@@ -375,18 +420,31 @@ function AW.Slash(msg)
 		for _, line in ipairs(AW.InspectSpell(rest)) do AW.Print(line) end
 	elseif cmd == "launcher" then
 		local L = ActionWheelsDB.launcher
+		local what
 		if rest == "lock" or rest == "unlock" then
 			L.locked = (rest == "lock")
-			return AW.Print("launcher " .. (L.locked and "locked" or "unlocked: Shift + drag to move it"))
+			return AW.Print("launcher buttons " .. (L.locked and "locked" or "unlocked: Shift + drag to move them"))
 		elseif rest == "reset" then
 			L.x, L.y = nil, nil
+			for _, w in pairs(p.wheels) do if w.launcher then w.launcher.x, w.launcher.y = nil, nil end end
+			what = "launcher buttons moved back to their start positions"
+		elseif rest == "wheel" then
+			def.launcher = def.launcher or {}
+			def.launcher.show = not def.launcher.show
+			what = "button for '" .. def.name .. "' " .. (def.launcher.show and "shown" or "hidden")
 		else
 			L.hide = not L.hide
+			what = "'last wheel' button " .. (L.hide and "hidden" or "shown")
 		end
-		if AW.InCombat() then AW.pendingApply = true return AW.Print("The launcher will update when combat ends.") end
-		AW.PlaceLauncher()
+		if AW.InCombat() then AW.pendingApply = true return AW.Print("The buttons will update when combat ends.") end
+		AW.PlaceLaunchers()
 		if AW.RefreshConfig then AW.RefreshConfig() end
-		return AW.Print("on-screen button " .. (L.hide and "hidden" or "shown (Shift + drag to move, /aw launcher lock to fix it)"))
+		return AW.Print(what .. "  (Shift + drag moves a button)")
+	elseif cmd == "macro" then
+		local which = (rest == "") and "last" or rest
+		if which ~= "last" and which ~= "first" then which = AW.FindWheel(p, rest) end
+		if not which then return AW.Print("Usage: /aw macro [last | first | <wheel name or number>]") end
+		AW.MakeActionBarMacro(which)
 	elseif cmd == "keys" then
 		AW.OpenKeyBindings()
 	elseif cmd == "" or cmd == "config" then

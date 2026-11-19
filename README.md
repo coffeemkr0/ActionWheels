@@ -20,10 +20,12 @@
 - Each slice shows its **cooldown**, **charges / item count**, and is **grey** when unusable, **blue** without mana and **red** when your target is out of range.
 
 ## Opening the wheel with the mouse
-No need for the keyboard:
-- **From an action bar:** make a macro with `/click ActionWheelsOpen` and put it on any bar. Clicking it opens the wheel at your cursor. `/click ActionWheelsOpen2` (3, 4... up to 8) opens that wheel directly.
-- **On-screen button:** `/aw launcher` (or Settings) shows a small button you can click. Shift + drag moves it; `/aw launcher lock` fixes it in place.
-- These work in combat. Click outside the wheel, or the button again, to close it. Set *Opens at: Screen centre* in Settings if a button near the screen edge would push the wheel off-screen.
+No keyboard needed. All of these work in combat:
+- **A "last wheel" button on screen:** `/aw launcher` (or Settings) shows a small movable button that opens the wheel you used last.
+- **A button for each wheel:** in the editor's Wheels tab tick *Movable on-screen button for this wheel* (or `/aw launcher wheel` for the wheel you're editing). Each wheel's button remembers its own position.
+- **On an action bar:** a frame can't be dragged onto a bar, so ActionWheels makes a tiny macro for you. In the editor press **Put on action bar** (Settings has **Last wheel -> bar**, or type `/aw macro [last|first|<wheel>]`). The macro lands on your cursor: click an action bar slot to drop it. By hand, the macro line is `/click ActionWheelsOpenLast`, `/click ActionWheelsOpen` (first wheel) or `/click ActionWheelsOpen2` (the 2nd wheel, up to 8).
+- **Moving and locking:** Shift + drag moves any of the buttons (out of combat). Lock them in Settings or with `/aw launcher lock`. `/aw launcher reset` returns them to their start positions.
+- Click outside the wheel, or the button again, to close it. Set *Opens at: Screen centre* if a button near the screen edge would push the wheel off-screen.
 
 ## `#showtooltip` macros
 A macro slot whose text starts with `#showtooltip Aimed Shot` (or just `#showtooltip`, meaning the first `/cast` or `/use`) shows that spell's icon, cooldown, charges, usable / range state and active-buff glow. Conditionals work and are evaluated live while the wheel is open, e.g. `#showtooltip [mod:shift] Hunter's Mark; Aimed Shot`. Remove the line to use your own icon.

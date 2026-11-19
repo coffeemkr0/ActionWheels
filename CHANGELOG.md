@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.0
+- **The on-screen button now opens the last wheel you used** (the wheel you were on when you last opened or paged), and there is a matching macro line, `/click ActionWheelsOpenLast`.
+- **A movable on-screen button for each wheel** (editor > Wheels tab, or `/aw launcher wheel`). Each remembers its own position and follows its wheel if wheels are reordered.
+- **Put them on an action bar:** the editor's **Put on action bar** button (and Settings > **Last wheel -> bar**, `/aw macro`) creates a small macro that clicks the right button and puts it on your cursor, ready to drop on a bar slot.
+- `/aw launcher [wheel|lock|unlock|reset]`. Shift + drag moves buttons; lock applies to all of them.
+
 ## 0.10.0
 - **Open the wheel with the mouse.** `/click ActionWheelsOpen` in a macro on any action bar opens the wheel (and `ActionWheelsOpen2` ... `8` open that wheel directly). An optional **on-screen button** (`/aw launcher` or Settings) does the same and can be moved with Shift + drag and locked. Both are secure click handlers, so they work in combat, and they act once per click whether the client sends a press, a release or both.
 

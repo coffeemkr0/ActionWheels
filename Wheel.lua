@@ -37,6 +37,7 @@ local GOPAGE = [[
 	if n then
 		n:Show()
 		self:SetAttribute("cur", name)
+		self:SetAttribute("last", name) -- "last wheel used", for the openers that ask for it
 	end
 ]]
 
@@ -238,9 +239,13 @@ end
 
 ---------------------------------------------------------------------------
 -- Mouse openers: click a button to open / close the wheel, no keyboard needed.
---   /click ActionWheelsOpen      in a macro on any action bar: opens the wheel that opens first
---   /click ActionWheelsOpen2     opens the 2nd wheel directly (…3, …4 up to 8)
---   the on-screen launcher       a small movable button (Settings, or /aw launcher)
+--   Invisible secure buttons, for macros on action bars (see AW.MakeActionBarMacro):
+--     /click ActionWheelsOpen        the wheel that opens first
+--     /click ActionWheelsOpenLast    the last wheel you used
+--     /click ActionWheelsOpen2       the 2nd wheel directly (...1 to 8)
+--   Visible on-screen buttons, movable with Shift + drag:
+--     ActionWheelsLauncher           opens the last wheel used
+--     ActionWheelsLauncher<k>        one optional button per wheel (opens that wheel)
 -- All are secure click handlers, so they work in combat. Unlike the key they always toggle: a
 -- click opens, clicking outside the wheel (or the opener again) closes.
 ---------------------------------------------------------------------------
@@ -257,7 +262,9 @@ local OPEN_SNIPPET = [[
 	self:SetAttribute("lastev", dir)
 	local w = self:GetFrameRef("wheel")
 	if w:IsShown() then w:Hide() return end
-	w:RunAttribute("gopage", self:GetAttribute("target") or w:GetAttribute("home"))
+	local target = self:GetAttribute("target")
+	if target == "last" then target = w:GetAttribute("last") end
+	w:RunAttribute("gopage", target or w:GetAttribute("home"))
 	w:ClearAllPoints()
 	if self:GetAttribute("at") == "center" then
 		w:SetPoint("CENTER", "$parent", "CENTER", 0, 0)
@@ -267,10 +274,10 @@ local OPEN_SNIPPET = [[
 	w:Show()
 ]]
 local openers = {}
-local launcher
+local launchers = {} -- launchers.last and launchers[k]
 
-local function MakeOpener(name, target, parent)
-	local b = CreateFrame("Button", name, parent or UIParent, "SecureHandlerClickTemplate")
+local function MakeOpener(name, target)
+	local b = CreateFrame("Button", name, UIParent, "SecureHandlerClickTemplate")
 	b:RegisterForClicks("LeftButtonDown", "LeftButtonUp")
 	b:SetFrameRef("wheel", root)
 	b:SetAttribute("target", target)
@@ -280,75 +287,109 @@ local function MakeOpener(name, target, parent)
 	return b
 end
 
-local function BuildLauncher()
-	launcher = MakeOpener("ActionWheelsLauncher", nil)
-	launcher:SetWidth(40)
-	launcher:SetHeight(40)
-	launcher:SetFrameStrata("MEDIUM")
-	launcher:SetMovable(true)
-	launcher:SetClampedToScreen(true)
-	launcher:RegisterForDrag("LeftButton")
-	launcher:Hide()
-	launcher.bg = launcher:CreateTexture(nil, "BACKGROUND")
-	launcher.bg:SetAllPoints(launcher)
-	launcher.bg:SetTexture(WHITE)
-	launcher.bg:SetVertexColor(0.05, 0.05, 0.09, 0.92)
-	launcher.icon = launcher:CreateTexture(nil, "ARTWORK")
-	launcher.icon:SetPoint("CENTER", launcher, "CENTER", 0, 0)
-	launcher.icon:SetWidth(30)
-	launcher.icon:SetHeight(30)
-	launcher.icon:SetTexture(TEX .. "MinimapIcon")
-	launcher.border = AW.SquareBorder(launcher, "BORDER", 2)
-	launcher.border:SetVertexColor(0.4, 0.45, 0.55, 1)
-	launcher.hl = launcher:CreateTexture(nil, "HIGHLIGHT")
-	launcher.hl:SetAllPoints(launcher)
-	launcher.hl:SetTexture(WHITE)
-	launcher.hl:SetVertexColor(0.2, 0.55, 1, 0.3)
+-- The saved settings a launcher button uses: { show / hide, x, y }. "last" lives in the account
+-- settings; the button for wheel k belongs to that wheel (so it follows the wheel if wheels move).
+function AW.LauncherData(b, create)
+	if b.key == "last" then return ActionWheelsDB and ActionWheelsDB.launcher end
+	local p = AW.P()
+	local w = p.wheels[p.order[b.key] or ""]
+	if not w then return nil end
+	if create and not w.launcher then w.launcher = {} end
+	return w.launcher
+end
+
+local function BuildLauncher(name, target, key)
+	local b = MakeOpener(name, target)
+	b.key = key
+	b:SetWidth(44)
+	b:SetHeight(44)
+	b:SetFrameStrata("MEDIUM")
+	b:SetMovable(true)
+	b:SetClampedToScreen(true)
+	b:RegisterForDrag("LeftButton")
+	b:Hide()
+	b.bg = b:CreateTexture(nil, "BACKGROUND")
+	b.bg:SetAllPoints(b)
+	b.bg:SetTexture(WHITE)
+	b.bg:SetVertexColor(0.05, 0.05, 0.09, 0.92)
+	b.icon = b:CreateTexture(nil, "ARTWORK")
+	b.icon:SetPoint("CENTER", b, "CENTER", 0, 4)
+	b.icon:SetWidth(26)
+	b.icon:SetHeight(26)
+	b.icon:SetTexture(TEX .. "MinimapIcon")
+	b.label = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	b.label:SetPoint("BOTTOM", b, "BOTTOM", 0, 2)
+	b.label:SetWidth(42)
+	b.label:SetHeight(10)
+	b.label:SetText(key == "last" and "Last" or "")
+	b.border = AW.SquareBorder(b, "BORDER", 2)
+	b.border:SetVertexColor(0.4, 0.45, 0.55, 1)
+	b.hl = b:CreateTexture(nil, "HIGHLIGHT")
+	b.hl:SetAllPoints(b)
+	b.hl:SetTexture(WHITE)
+	b.hl:SetVertexColor(0.2, 0.55, 1, 0.3)
 	-- Shift + drag moves it (out of combat, unless locked)
-	launcher:SetScript("OnDragStart", function(self)
+	b:SetScript("OnDragStart", function(self)
 		local L = ActionWheelsDB and ActionWheelsDB.launcher
 		if IsShiftKeyDown() and L and not L.locked and not InCombatLockdown() then
 			self.moving = true
 			self:StartMoving()
 		end
 	end)
-	launcher:SetScript("OnDragStop", function(self)
+	b:SetScript("OnDragStop", function(self)
 		if not self.moving then return end
 		self.moving = false
 		self:StopMovingOrSizing()
-		local x, y = self:GetCenter()
-		local L = ActionWheelsDB.launcher
-		L.x, L.y = x, y
-		AW.PlaceLauncher()
+		local d = AW.LauncherData(self, true)
+		if d then d.x, d.y = self:GetCenter() end
+		AW.PlaceLaunchers()
 	end)
-	launcher:SetScript("OnEnter", function(self)
+	b:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:AddLine("ActionWheels", 1, 0.82, 0)
-		GameTooltip:AddLine("Click: open / close the wheel", 1, 1, 1)
+		GameTooltip:AddLine(self.key == "last" and "Click: open the last wheel you used" or "Click: open this wheel", 1, 1, 1)
 		GameTooltip:AddLine("Shift + drag: move this button", 0.6, 0.6, 0.6)
 		GameTooltip:Show()
 	end)
-	launcher:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	return b
 end
 
 BuildOpeners = function()
 	MakeOpener("ActionWheelsOpen", nil)
+	MakeOpener("ActionWheelsOpenLast", "last")
 	for k = 1, AW.MAXWHEELS do MakeOpener("ActionWheelsOpen" .. k, "page" .. k) end
-	BuildLauncher()
+	launchers.last = BuildLauncher("ActionWheelsLauncher", "last", "last")
+	for k = 1, AW.MAXWHEELS do launchers[k] = BuildLauncher("ActionWheelsLauncher" .. k, "page" .. k, k) end
 end
 
--- Position / visibility of the launcher. Out of combat only (it is a protected frame).
-function AW.PlaceLauncher()
-	local L = ActionWheelsDB and ActionWheelsDB.launcher
-	if not (launcher and L) or InCombatLockdown() then return end
-	launcher:ClearAllPoints()
-	if L.x and L.y then
-		launcher:SetPoint("CENTER", UIParent, "BOTTOMLEFT", L.x, L.y)
-	else
-		launcher:SetPoint("CENTER", UIParent, "CENTER", 0, -200)
+-- Position and visibility of every launcher button. Out of combat only (they are protected).
+function AW.PlaceLaunchers()
+	if not (launchers.last and ActionWheelsDB and ActionWheelsDB.profile) or InCombatLockdown() then return end
+	local function place(b, d, slot)
+		b:ClearAllPoints()
+		if d and d.x and d.y then b:SetPoint("CENTER", UIParent, "BOTTOMLEFT", d.x, d.y)
+		else b:SetPoint("CENTER", UIParent, "CENTER", -150 + slot * 48, -200) end
 	end
-	if L.hide then launcher:Hide() else launcher:Show() end
+	local L = ActionWheelsDB.launcher
+	place(launchers.last, L, 0)
+	if L.hide then launchers.last:Hide() else launchers.last:Show() end
+	local p = AW.P()
+	for k = 1, AW.MAXWHEELS do
+		local b = launchers[k]
+		local id = p.order[k]
+		local w = id and p.wheels[id]
+		local d = w and w.launcher
+		if w and d and d.show then
+			place(b, d, k)
+			b.label:SetText(string.sub(w.name, 1, 8))
+			b:Show()
+		else
+			b:Hide()
+		end
+	end
 end
+AW.PlaceLauncher = AW.PlaceLaunchers
 
 local function Build()
 	root = CreateFrame("Frame", "ActionWheelsRoot", UIParent, "SecureHandlerStateTemplate")
@@ -662,7 +703,7 @@ function AW.ApplyLayout()
 	toggle:SetAttribute("mode", S.openMode or "toggle")
 	toggle:SetAttribute("at", S.openAt or "cursor")
 	for _, o in ipairs(openers) do o:SetAttribute("at", S.openAt or "cursor") end
-	AW.PlaceLauncher()
+	AW.PlaceLaunchers()
 
 	-- wheel id -> page, and which wheels some slot links to (those get a "back" button)
 	pageOf = {}
