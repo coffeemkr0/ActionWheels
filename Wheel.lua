@@ -662,8 +662,13 @@ end
 
 local function PaintCooldown(b, st)
 	if st.cdSecret then
-		-- secret numbers: no comparing, just hand them to the swirl each refresh
-		b.cd:SetCooldown(st.cdStart, st.cdDur)
+		-- Secret numbers can't be compared or (reliably) passed to SetCooldown. The game's duration
+		-- object can be handed to the swirl; it is re-applied on each refresh (and clears at zero).
+		if st.cdObject and b.cd.SetCooldownFromDurationObject then
+			b.cd:SetCooldownFromDurationObject(st.cdObject, true)
+		else
+			b.cd:SetCooldown(st.cdStart, st.cdDur)
+		end
 		b.cdStart, b.cdDur = true, true
 	elseif st.cdStart and st.cdDur and st.cdDur > 0 then
 		if b.cdStart ~= st.cdStart or b.cdDur ~= st.cdDur then

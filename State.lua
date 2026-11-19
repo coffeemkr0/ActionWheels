@@ -25,6 +25,12 @@ local function range(r)
 	return nil
 end
 
+-- A "duration object" for a spell's cooldown: the one thing the game lets an addon hand to a
+-- Cooldown frame in combat, when the start / duration numbers are secret.
+local function spellCooldownObject(id)
+	if id and C_Spell and C_Spell.GetSpellCooldownDuration then return C_Spell.GetSpellCooldownDuration(id) end
+end
+
 local function spellCooldown(name)
 	if C_Spell and C_Spell.GetSpellCooldown then
 		local c = C_Spell.GetSpellCooldown(name)
@@ -395,7 +401,7 @@ function AW.NoteCast(name)
 	AW.RememberBuff(name, true, nil, "your cast")
 end
 
--- Returns { cdStart, cdDur, cdSecret, count, usable, noMana, inRange, active }; any field may be nil.
+-- Returns { cdStart, cdDur, cdSecret, cdObject, count, usable, noMana, inRange, active }; any field may be nil.
 -- cdSecret means the cooldown numbers are secret: they may only be handed to a Cooldown frame.
 function AW.SlotState(slot)
 	local st = {}
@@ -435,6 +441,10 @@ function AW.SlotState(slot)
 	if st.cdDur ~= nil or st.cdStart ~= nil then
 		if secret(st.cdDur) or secret(st.cdStart) then
 			st.cdSecret = true
+			if slot.type == "spell" then
+				local id = try(spellIdOf, slot.spell)
+				st.cdObject = id and try(spellCooldownObject, id) or nil
+			end
 			if onGCD ~= nil and not secret(onGCD) and onGCD then st.cdStart, st.cdDur, st.cdSecret = nil, nil, nil end
 		elseif st.cdDur and st.cdDur <= AW.GCD then
 			st.cdStart, st.cdDur = nil, nil

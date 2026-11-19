@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.13.2
+- **Fix: spell cooldowns now show in combat.** In combat the game hides the cooldown numbers from addons, and passing them to the swirl did not work. ActionWheels now asks the game for a cooldown *duration object* and gives that to the swirl, which the game does allow. (Item cooldowns in combat still use the old way and may not show; `/aw debug` prints a "slice display problem" line if the game refuses anything.)
+
 ## 0.13.1
 - **A wheel opened from an action bar button now opens at the screen centre** (the bar sits at the screen edge, so opening at the cursor pushed it off-screen). Setting: Settings > *Action bar buttons open*, or `/aw barat cursor|center`. The on-screen buttons still follow *Opens at*.
 

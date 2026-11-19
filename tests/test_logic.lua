@@ -758,6 +758,35 @@ AW.P().settings.hubScale, AW.P().settings.fontScale = 2, 1.5
 eq(pcall(AW.ApplyLayout), true, "layout copes with larger text and centre sizes")
 AW.Slash("reset")
 
+-- secret cooldowns use the game's duration object
+AW.spellIdCache = {}
+local SECRET2 = {}
+local function mk2() return setmetatable({}, SECRET2) end
+issecretvalue = function(v) return getmetatable(v) == SECRET2 end
+local durObj = { "duration object" }
+C_Spell = {
+	GetSpellInfo = function() return { spellID = 77 } end,
+	GetSpellCooldown = function() return { startTime = mk2(), duration = mk2(), isOnGCD = false } end,
+	GetSpellCooldownDuration = function(id) if id == 77 then return durObj end end,
+}
+local sd = AW.SlotState({ type = "spell", spell = "Aimed Shot" })
+eq(sd.cdSecret, true, "secret cooldown"); eq(sd.cdObject, durObj, "duration object fetched for it")
+local usedObj
+AW.Slash("reset")
+AW.P().wheels.main.items[1] = { type = "spell", spell = "Aimed Shot" }
+AW.ApplyLayout()
+local sl1 = _G.ActionWheelsP1S1
+sl1.cd.SetCooldownFromDurationObject = function(_, o, clear) usedObj = o; sl1.clearArg = clear end
+_COMBAT = true
+_G.ActionWheelsPage1:Show()
+AW.RefreshStates()
+eq(usedObj, durObj, "the swirl is driven from the duration object in combat")
+eq(sl1.clearArg, true, "and clears when the cooldown is over")
+_COMBAT = false
+sl1.cd.SetCooldownFromDurationObject = nil
+C_Spell, issecretvalue = nil, nil
+AW.spellIdCache = {}
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
