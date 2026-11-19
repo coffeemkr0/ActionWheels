@@ -71,6 +71,7 @@ local function Sanitize(p)
 	fill(p.settings, AW.DEFAULT_SETTINGS)
 	local om = p.settings.openMode
 	if om ~= "toggle" and om ~= "hold" and om ~= "auto" then p.settings.openMode = "toggle" end
+	if p.settings.openFirst ~= "selected" and p.settings.openFirst ~= "last" then p.settings.openFirst = "selected" end
 	local cm = p.settings.closeMode
 	if cm ~= "success" and cm ~= "click" and cm ~= "never" then p.settings.closeMode = "success" end
 	if not p.wheels[p.current] then p.current = p.order[1] end
@@ -294,6 +295,7 @@ local HELP = {
 	"/aw set <slot> wheel <name or number>  - a slot that opens another wheel",
 	"/aw wheels   /aw wheel new|select|rename|delete   (wheels you page through with the hub arrows)",
 	"/aw clear <slot>   /aw list   /aw slots <4-12>",
+	"/aw opens selected|last   /aw scroll on|off|reverse   (which wheel the key opens / mouse wheel paging)",
 	"/aw mode toggle|hold|auto   /aw at cursor|center   /aw scale <0.5-2>   /aw close success|click|never",
 	"/aw wheel auto [mounted]   - open this wheel first when a macro condition holds (off to clear)",
 	"/aw launcher [wheel|lock|unlock|reset]   (on-screen buttons: last wheel used / this wheel)",
@@ -353,6 +355,21 @@ function AW.Slash(msg)
 		end
 		p.settings.openMode = rest
 		return done(true, "open mode: " .. rest)
+	elseif cmd == "opens" then
+		if rest ~= "selected" and rest ~= "last" then
+			return AW.Print("Usage: /aw opens selected|last  (which wheel the key opens: the one you're editing, or the last one used)")
+		end
+		p.settings.openFirst = rest
+		return done(true, "the key opens " .. (rest == "last" and "the last wheel you used" or "the wheel you are editing"))
+	elseif cmd == "scroll" then
+		if rest == "reverse" then
+			p.settings.wheelReverse = not p.settings.wheelReverse
+			return done(true, "mouse wheel direction " .. (p.settings.wheelReverse and "reversed" or "normal"))
+		elseif rest == "on" or rest == "off" then
+			p.settings.wheelScroll = (rest == "on")
+			return done(true, "mouse wheel switching wheels: " .. rest)
+		end
+		return AW.Print("Usage: /aw scroll on|off|reverse  (mouse wheel switches wheels while the wheel is open)")
 	elseif cmd == "close" then
 		if rest ~= "success" and rest ~= "click" and rest ~= "never" then
 			return AW.Print("Usage: /aw close success|click|never  (success: a spell slice stays open until it casts)")

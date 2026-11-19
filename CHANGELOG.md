@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.0
+- **The key can open the last wheel you used** (Settings > *The key opens*, or `/aw opens last`). The default is still the wheel you are editing. An auto-open condition such as `[mounted]` still wins while it holds.
+- **Mouse wheel switches wheels** while the wheel is open (scroll up = previous). Works in combat. Settings has an on/off switch and a *reverse direction* option (`/aw scroll on|off|reverse`). When switched off the mouse wheel passes through to the game again (camera zoom).
+
 ## 0.11.0
 - **The on-screen button now opens the last wheel you used** (the wheel you were on when you last opened or paged), and there is a matching macro line, `/click ActionWheelsOpenLast`.
 - **A movable on-screen button for each wheel** (editor > Wheels tab, or `/aw launcher wheel`). Each remembers its own position and follows its wheel if wheels are reordered.

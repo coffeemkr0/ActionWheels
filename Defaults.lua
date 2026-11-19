@@ -8,6 +8,9 @@ AW.DEFAULT_SETTINGS = {
 	scale = 1,
 	radius = 105,         -- minimum ring radius (grows if the buttons need room)
 	buttonSize = 56,
+	openFirst = "selected", -- which wheel the key opens: "selected" (the one being edited) or "last" (last used)
+	wheelScroll = true,     -- the mouse wheel switches wheels while the wheel is open
+	wheelReverse = false,   -- reverse the scroll direction
 	closeMode = "success", -- after a click: "success" (spells stay open until they cast), "click", "never"
 }
 

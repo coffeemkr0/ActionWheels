@@ -618,6 +618,31 @@ GetMacroIndexByName, CreateMacro, EditMacro, PickupMacro = nil, nil, nil, nil
 eq(AW.MakeActionBarMacro("first"), false, "no macro API: the line is printed instead")
 AW.Slash("macro first")
 
+-- key opens last wheel, mouse wheel paging
+AW.Slash("reset")
+eq(AW.P().settings.openFirst, "selected", "default: the key opens the selected wheel")
+eq(_G.ActionWheelsToggle:GetAttribute("first"), "selected", "toggle button knows")
+AW.Slash("opens last")
+eq(AW.P().settings.openFirst, "last", "/aw opens last")
+eq(_G.ActionWheelsToggle:GetAttribute("first"), "last", "toggle button follows the setting")
+eq(string.find(_G.ActionWheelsToggle:GetAttribute("_onclick"), 'defhome', 1, true) ~= nil, true, "auto conditions still win over 'last'")
+AW.Slash("opens sideways")
+eq(AW.P().settings.openFirst, "last", "bad value rejected")
+ActionWheelsDB.profile.settings.openFirst = "bogus"
+AW.InitDB()
+eq(AW.P().settings.openFirst, "selected", "bad saved value repaired")
+eq(_G.ActionWheelsRoot:GetAttribute("defhome"), "page1", "the default first wheel is recorded")
+eq(_G.ActionWheelsRoot:GetAttribute("wheelscroll"), 1, "mouse wheel paging on by default")
+eq(_G.ActionWheelsRoot:GetAttribute("wheelrev"), 0, "not reversed by default")
+eq(type(_G.ActionWheelsCatcher:GetAttribute("_onmousewheel")), "string", "catcher handles the mouse wheel")
+AW.Slash("scroll off")
+eq(_G.ActionWheelsRoot:GetAttribute("wheelscroll"), 0, "mouse wheel paging off")
+AW.Slash("scroll on")
+AW.Slash("scroll reverse")
+eq(_G.ActionWheelsRoot:GetAttribute("wheelrev"), 1, "reversed")
+AW.Slash("scroll reverse")
+eq(_G.ActionWheelsRoot:GetAttribute("wheelrev"), 0, "back to normal")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")

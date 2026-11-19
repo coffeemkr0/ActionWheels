@@ -408,13 +408,25 @@ local function Build()
 	RegisterStateDriver(root, "combatmode", "[combat] hold; toggle")
 
 	-- click anywhere outside the wheel to close it
-	catcher = CreateFrame("Button", "ActionWheelsCatcher", root, "SecureHandlerClickTemplate")
+	catcher = CreateFrame("Button", "ActionWheelsCatcher", root, "SecureHandlerClickTemplate,SecureHandlerMouseWheelTemplate")
 	catcher:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
 	catcher:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, 0)
 	catcher:SetFrameLevel(root:GetFrameLevel())
 	catcher:RegisterForClicks("AnyUp")
 	catcher:SetFrameRef("wheel", root)
 	catcher:SetAttribute("_onclick", [[ self:GetFrameRef("wheel"):Hide() ]])
+	-- scrolling the mouse wheel anywhere while the wheel is open switches wheel (scroll up = previous)
+	catcher:EnableMouseWheel(true)
+	catcher:SetAttribute("_onmousewheel", [[
+		local r = self:GetFrameRef("wheel")
+		if r:GetAttribute("wheelscroll") ~= 1 then return end
+		local c = r:GetFrameRef(r:GetAttribute("cur"))
+		if not c then return end
+		local up = delta > 0
+		if r:GetAttribute("wheelrev") == 1 then up = not up end
+		local n = c:GetAttribute(up and "prev" or "next")
+		if n then r:RunAttribute("gopage", n) end
+	]])
 
 	-- Target of the "/click ActionWheelsClose" line every slice's macro ends with. A secure macro may
 	-- /click a secure handler in combat, which is how a slice closes the wheel after it ran.
@@ -447,7 +459,12 @@ local function Build()
 			show = not w:IsShown()
 		end
 		if show then
-			w:RunAttribute("gopage", w:GetAttribute("home")) -- always open on the first wheel
+			-- open on the wheel that opens first, or on the last one used (unless an auto condition applies)
+			local target = w:GetAttribute("home")
+			if self:GetAttribute("first") == "last" and target == w:GetAttribute("defhome") then
+				target = w:GetAttribute("last") or target
+			end
+			w:RunAttribute("gopage", target)
 			w:ClearAllPoints()
 			if self:GetAttribute("at") == "center" then
 				w:SetPoint("CENTER", "$parent", "CENTER", 0, 0)
@@ -702,6 +719,10 @@ function AW.ApplyLayout()
 	root:SetScale(S.scale or 1)
 	toggle:SetAttribute("mode", S.openMode or "toggle")
 	toggle:SetAttribute("at", S.openAt or "cursor")
+	toggle:SetAttribute("first", S.openFirst or "selected")
+	root:SetAttribute("wheelscroll", S.wheelScroll and 1 or 0)
+	root:SetAttribute("wheelrev", S.wheelReverse and 1 or 0)
+	catcher:EnableMouseWheel(S.wheelScroll and true or false) -- off: the wheel passes through (camera zoom)
 	for _, o in ipairs(openers) do o:SetAttribute("at", S.openAt or "cursor") end
 	AW.PlaceLaunchers()
 
@@ -730,6 +751,7 @@ function AW.ApplyLayout()
 		local cond = p.wheels[id].auto
 		if cond and AW.ValidCondition(cond) then clauses[#clauses + 1] = cond .. " " .. pageName(k) end
 	end
+	root:SetAttribute("defhome", home) -- the wheel that opens first when no auto condition applies
 	root:SetAttribute("home", home)
 	root:SetAttribute("cur", home)
 	if #clauses > 0 then

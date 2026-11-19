@@ -397,10 +397,18 @@ local function BuildSettingsTab(t)
 		function() return S().openAt end, function(v) S().openAt = v end, 190, 140)
 	Cycle(t, "After clicking a spell", 20, -92, { { "success", "Close when it casts" }, { "click", "Close right away" }, { "never", "Stay open" } },
 		function() return S().closeMode end, function(v) S().closeMode = v end, 190, 140)
-	Text(t, "Look", 10, -134)
-	Slider(t, "Button size", 20, -166, 40, 110, 1, function() return S().buttonSize end, function(v) S().buttonSize = v end)
-	Slider(t, "Minimum ring radius", 20, -206, 70, 200, 1, function() return S().radius end, function(v) S().radius = v end)
-	Slider(t, "Whole wheel scale", 20, -246, 0.6, 2, 0.05, function() return S().scale end, function(v) S().scale = v end, "%.2f")
+	Cycle(t, "The key opens", 20, -122, { { "selected", "The wheel I'm editing" }, { "last", "The last wheel I used" } },
+		function() return S().openFirst end, function(v) S().openFirst = v end, 190, 140)
+	Text(t, "Look", 10, -164)
+	Slider(t, "Button size", 20, -196, 40, 110, 1, function() return S().buttonSize end, function(v) S().buttonSize = v end)
+	Slider(t, "Minimum ring radius", 20, -236, 70, 200, 1, function() return S().radius end, function(v) S().radius = v end)
+	Slider(t, "Whole wheel scale", 20, -276, 0.6, 2, 0.05, function() return S().scale end, function(v) S().scale = v end, "%.2f")
+	Check(t, "Mouse wheel switches wheels", 14, -306,
+		function() return S().wheelScroll end,
+		function(v) if Locked() then return end S().wheelScroll = v; OnChanged() end)
+	Check(t, "Reverse the mouse wheel direction", 14, -332,
+		function() return S().wheelReverse end,
+		function(v) if Locked() then return end S().wheelReverse = v; OnChanged() end)
 	Text(t, "Other", 280, -134)
 	Check(t, "Show the minimap button", 276, -158,
 		function() return not ActionWheelsDB.minimap.hide end,
@@ -445,16 +453,6 @@ local function BuildSettingsTab(t)
 		sel = 1
 		RefreshAll()
 	end)
-	Text(t, "Or make a macro yourself (any bar):", 10, -318, "GameFontNormalSmall")
-	local mac = CreateFrame("EditBox", nil, t, "InputBoxTemplate")
-	mac:SetWidth(200)
-	mac:SetHeight(20)
-	mac:SetPoint("TOPLEFT", t, "TOPLEFT", 16, -334)
-	mac:SetAutoFocus(false)
-	mac:SetText("/click ActionWheelsOpen")
-	mac:SetScript("OnEditFocusLost", function() mac:SetText("/click ActionWheelsOpen") end)
-	mac:SetScript("OnEscapePressed", function() mac:ClearFocus() end)
-	Text(t, "/click ActionWheelsOpenLast  (last wheel)  or  ...Open2, 3  (a wheel)", 224, -338, "GameFontHighlightSmall", 300)
 	Text(t, "Wheels edited in the Wheels tab. Key: Esc > Key Bindings > AddOns > ActionWheels.", 10, -366, "GameFontHighlightSmall", 500)
 end
 
