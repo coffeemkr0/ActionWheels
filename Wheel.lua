@@ -55,6 +55,34 @@ local BACK_CLICK = [[
 
 local function pageName(k) return "page" .. k end
 
+local WHITE = "Interface\\Buttons\\WHITE8X8"
+
+-- A thin square border made of four edge textures. Behaves like one texture for SetVertexColor.
+function AW.SquareBorder(parent, layer, thickness)
+	local t = thickness or 2
+	local e = {}
+	local function edge(p1, p2, w, h)
+		local tex = parent:CreateTexture(nil, layer or "BORDER")
+		tex:SetTexture(WHITE)
+		tex:SetPoint(p1, parent, p1, 0, 0)
+		tex:SetPoint(p2, parent, p2, 0, 0)
+		if w then tex:SetWidth(w) end
+		if h then tex:SetHeight(h) end
+		e[#e + 1] = tex
+	end
+	edge("TOPLEFT", "TOPRIGHT", nil, t)
+	edge("BOTTOMLEFT", "BOTTOMRIGHT", nil, t)
+	edge("TOPLEFT", "BOTTOMLEFT", t, nil)
+	edge("TOPRIGHT", "BOTTOMRIGHT", t, nil)
+	local border = {}
+	function border:SetVertexColor(r, g, b, a)
+		for _, tex in ipairs(e) do tex:SetVertexColor(r, g, b, a or 1) end
+	end
+	function border:Show() for _, tex in ipairs(e) do tex:Show() end end
+	function border:Hide() for _, tex in ipairs(e) do tex:Hide() end end
+	return border
+end
+
 local function Font(fs, size) fs:SetFont("Fonts\\ARIALN.TTF", size) end
 
 local function SecureLabel(b, text)
@@ -91,17 +119,15 @@ local function BuildSlice(page, i)
 	b.index, b.page = i, page
 	b.bg = b:CreateTexture(nil, "BACKGROUND")
 	b.bg:SetAllPoints(b)
-	b.bg:SetTexture(TEX .. "Circle")
-	b.bg:SetVertexColor(0.07, 0.07, 0.11, 0.92)
+	b.bg:SetTexture(WHITE)
+	b.bg:SetVertexColor(0.05, 0.05, 0.09, 0.92)
 	b.icon = b:CreateTexture(nil, "ARTWORK")
 	b.icon:SetPoint("CENTER", b, "CENTER", 0, 0)
 	b.icon:Hide()
 	b.cd = CreateFrame("Cooldown", nil, b, "CooldownFrameTemplate")
 	b.cd:SetPoint("CENTER", b, "CENTER", 0, 0)
 	b.cd:EnableMouse(false) -- never let the swirl swallow the click
-	b.ring = b:CreateTexture(nil, "BORDER")
-	b.ring:SetAllPoints(b)
-	b.ring:SetTexture(TEX .. "Ring")
+	b.ring = AW.SquareBorder(b, "BORDER", 2)
 	b.ring:SetVertexColor(0.4, 0.45, 0.55, 1)
 	-- "checked" look of the built-in action bars: the game's own additive highlight over the icon
 	b.glow = b:CreateTexture(nil, "ARTWORK", nil, 2)
@@ -111,19 +137,19 @@ local function BuildSlice(page, i)
 	b.glow:Hide()
 	b.hl = b:CreateTexture(nil, "OVERLAY")
 	b.hl:SetAllPoints(b)
-	b.hl:SetTexture(TEX .. "Circle")
-	b.hl:SetVertexColor(0.2, 0.55, 1, 0.45)
+	b.hl:SetTexture(WHITE)
+	b.hl:SetVertexColor(0.2, 0.55, 1, 0.3)
 	b.hl:Hide()
 	-- press and click feedback: a dark "pushed" overlay while the mouse is down, a white flash on
 	-- release, a green flash when the cast is confirmed (see AW.FlashSlice)
 	b.push = b:CreateTexture(nil, "OVERLAY")
 	b.push:SetAllPoints(b)
-	b.push:SetTexture(TEX .. "Circle")
+	b.push:SetTexture(WHITE)
 	b.push:SetVertexColor(0, 0, 0, 0.5)
 	b.push:Hide()
 	b.flash = b:CreateTexture(nil, "OVERLAY", nil, 3)
 	b.flash:SetAllPoints(b)
-	b.flash:SetTexture(TEX .. "Circle")
+	b.flash:SetTexture(WHITE)
 	b.flash:SetBlendMode("ADD")
 	b.flash:Hide()
 	b.count = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
@@ -438,7 +464,8 @@ local function LayoutPage(page, id, k, count, targets)
 	local def = p.wheels[id]
 	local n = def.slots
 	local btn = S.buttonSize or 56
-	local minR = math.max(48 + btn / 2 + 8, btn * n / (2 * math.pi) + 4)
+	-- square buttons: keep the hub clear, and neighbours (even at the diagonal) from overlapping
+	local minR = math.max(48 + btn / 2 + 8, 1.15 * btn / (2 * math.sin(math.pi / n)))
 	local radius = math.max(S.radius or 105, minR)
 
 	page.wheelId = id
@@ -471,12 +498,12 @@ local function LayoutPage(page, id, k, count, targets)
 			end
 			b:SetWidth(btn)
 			b:SetHeight(btn)
-			b.icon:SetWidth(btn - 14)
-			b.icon:SetHeight(btn - 14)
-			b.glow:SetWidth(btn - 8)
-			b.glow:SetHeight(btn - 8)
-			b.cd:SetWidth(btn - 14)
-			b.cd:SetHeight(btn - 14)
+			b.icon:SetWidth(btn - 6)
+			b.icon:SetHeight(btn - 6)
+			b.glow:SetWidth(btn + 2)
+			b.glow:SetHeight(btn + 2)
+			b.cd:SetWidth(btn - 6)
+			b.cd:SetHeight(btn - 6)
 			local a = (i - 1) * step -- clockwise from the top
 			b:ClearAllPoints()
 			b:SetPoint("CENTER", page, "CENTER", math.sin(a) * radius, math.cos(a) * radius)

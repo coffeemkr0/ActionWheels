@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.8.0
+- **Square buttons.** The round discs and rings behind the slices are gone: each slice is now a square icon with a thin square border (gold while active), and the hover, pressed and click-flash overlays are square too. The editor preview matches. The centre hub stays round. Neighbouring buttons are spaced so even square corners never overlap.
+
 ## 0.7.1
 - **Fix: gold highlight stuck on the wrong Aspect in combat.** If the game refused one part of a slice's display in combat (the cooldown swirl or count), the update stopped halfway and left the old highlight behind. The highlight and tint are now applied first, and the cooldown and count each fail on their own. With `/aw debug` on, such a failure prints a "slice display problem" line.
 

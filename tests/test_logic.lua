@@ -500,6 +500,7 @@ local s1, s2 = _G.ActionWheelsP1S1, _G.ActionWheelsP1S2
 s1.cd.SetCooldown = function() error("secret value refused") end
 s2.cd.SetCooldown = function() error("secret value refused") end
 s1.count.SetText = function() error("secret value refused") end
+local origRing = s1.ring.SetVertexColor
 s1.glow:Show(); s1.ring.SetVertexColor = function(_, r, g) s1.ringR = r end
 _COMBAT = true
 GetSpellCooldown = function() return 100, 10, 1 end
@@ -513,7 +514,8 @@ AW.debug = true
 AW.RefreshStates()
 AW.debug = false
 _COMBAT = false
-s1.cd.SetCooldown, s2.cd.SetCooldown, s1.count.SetText, s1.ring.SetVertexColor = nil, nil, nil, nil
+s1.cd.SetCooldown, s2.cd.SetCooldown, s1.count.SetText = nil, nil, nil
+s1.ring.SetVertexColor = origRing
 
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
