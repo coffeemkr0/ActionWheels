@@ -72,7 +72,7 @@ local function Sanitize(p)
 	if p.settings.barOpenAt ~= "cursor" and p.settings.barOpenAt ~= "center" then p.settings.barOpenAt = "center" end
 	local om = p.settings.openMode
 	if om ~= "toggle" and om ~= "hold" and om ~= "auto" then p.settings.openMode = "toggle" end
-	if p.settings.openFirst ~= "selected" and p.settings.openFirst ~= "last" then p.settings.openFirst = "selected" end
+	if p.settings.openFirst ~= "selected" and p.settings.openFirst ~= "last" then p.settings.openFirst = "last" end
 	p.settings.fontScale = math.max(0.7, math.min(2.5, tonumber(p.settings.fontScale) or 1))
 	p.settings.hubScale = math.max(0.8, math.min(2.5, tonumber(p.settings.hubScale) or 1))
 	local cm = p.settings.closeMode
@@ -101,6 +101,13 @@ function AW.InitDB()
 	if tr.dir ~= "right" and tr.dir ~= "down" and tr.dir ~= "left" and tr.dir ~= "up" then tr.dir = "right" end
 	Sanitize(ActionWheelsDB.profile)
 	ActionWheelsCharDB = ActionWheelsCharDB or {}
+	-- one-time: "the key opens the last wheel used" became the default; switch profiles that still
+	-- carry the old default so the key remembers the wheel you used
+	if not ActionWheelsDB.openFirstMigrated then
+		ActionWheelsDB.openFirstMigrated = true
+		ActionWheelsDB.profile.settings.openFirst = "last"
+		if ActionWheelsCharDB.profile then ActionWheelsCharDB.profile.settings.openFirst = "last" end
+	end
 	if ActionWheelsCharDB.profile then Sanitize(ActionWheelsCharDB.profile) end
 end
 

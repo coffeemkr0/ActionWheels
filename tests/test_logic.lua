@@ -632,8 +632,10 @@ AW.Slash("macro first")
 
 -- key opens last wheel, mouse wheel paging
 AW.Slash("reset")
-eq(AW.P().settings.openFirst, "selected", "default: the key opens the selected wheel")
-eq(_G.ActionWheelsToggle:GetAttribute("first"), "selected", "toggle button knows")
+eq(AW.P().settings.openFirst, "last", "default: the key opens the last wheel used")
+eq(_G.ActionWheelsToggle:GetAttribute("first"), "last", "toggle button knows")
+AW.Slash("opens selected")
+eq(_G.ActionWheelsToggle:GetAttribute("first"), "selected", "the old behaviour is a setting")
 AW.Slash("opens last")
 eq(AW.P().settings.openFirst, "last", "/aw opens last")
 eq(_G.ActionWheelsToggle:GetAttribute("first"), "last", "toggle button follows the setting")
@@ -642,7 +644,7 @@ AW.Slash("opens sideways")
 eq(AW.P().settings.openFirst, "last", "bad value rejected")
 ActionWheelsDB.profile.settings.openFirst = "bogus"
 AW.InitDB()
-eq(AW.P().settings.openFirst, "selected", "bad saved value repaired")
+eq(AW.P().settings.openFirst, "last", "bad saved value repaired")
 eq(_G.ActionWheelsRoot:GetAttribute("defhome"), "page1", "the default first wheel is recorded")
 eq(_G.ActionWheelsRoot:GetAttribute("wheelscroll"), 1, "mouse wheel paging on by default")
 eq(_G.ActionWheelsRoot:GetAttribute("wheelrev"), 0, "not reversed by default")
@@ -947,6 +949,38 @@ ActionWheelsDB.tracker.locked = true
 ActionWheelsDB.tracker.x, ActionWheelsDB.tracker.y = nil, nil
 IsShiftKeyDown = nil
 trf.StartMoving, trf.StopMovingOrSizing, trf.GetLeft, trf.GetTop = nil, nil, nil, nil
+
+-- last wheel survives sessions; mouse wheel does not wrap
+AW.Slash("reset")
+AW.Slash("wheel new Two")
+AW.Slash("wheel new Three")
+AW.Slash("wheel select 1")
+eq(_G.ActionWheelsPage1:GetAttribute("idx"), 1, "pages know their position"); eq(_G.ActionWheelsPage3:GetAttribute("idx"), 3, "page 3 is third")
+eq(_G.ActionWheelsRoot:GetAttribute("count"), 3, "the wheel count is recorded for the mouse wheel")
+local snippet = _G.ActionWheelsCatcher:GetAttribute("_onmousewheel")
+eq(string.find(snippet, "nidx < 1 or nidx > r:GetAttribute(\"count\")", 1, true) ~= nil, true, "mouse wheel stops at the ends")
+eq(string.find(snippet, '"next"', 1, true), nil, "and does not use the wrapping next/prev links")
+_G.ActionWheelsRoot:SetAttribute("last", "page3")
+_G.ActionWheelsRoot._OnHide()
+eq(AW.P().lastWheel, "w3", "closing saves the wheel that was showing")
+AW.ApplyLayout()
+eq(_G.ActionWheelsRoot:GetAttribute("last"), "page3", "and it is restored after a layout refresh / reload")
+AW.Slash("wheel select w3")
+AW.Slash("wheel move up")
+AW.Slash("wheel move up")
+eq(_G.ActionWheelsRoot:GetAttribute("last"), "page1", "after reordering it still points at the same wheel")
+AW.Slash("wheel delete")
+eq(_G.ActionWheelsRoot:GetAttribute("last") ~= nil, true, "a deleted last wheel falls back to the first wheel")
+-- one-time migration of the old default
+ActionWheelsDB.openFirstMigrated = nil
+ActionWheelsDB.profile.settings.openFirst = "selected"
+AW.InitDB()
+eq(AW.P().settings.openFirst, "last", "old default migrated once")
+AW.Slash("opens selected")
+AW.InitDB()
+eq(AW.P().settings.openFirst, "selected", "and a later choice is kept")
+AW.Slash("opens last")
+AW.Slash("reset")
 
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")

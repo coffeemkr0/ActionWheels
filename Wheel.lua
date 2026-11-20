@@ -574,10 +574,12 @@ local function Build()
 		if not c then return end
 		local up = delta > 0
 		if r:GetAttribute("wheelrev") == 1 then up = not up end
-		local n = c:GetAttribute(up and "prev" or "next")
-		if n then r:RunAttribute("gopage", n) end
+		-- stops at the first and last wheel (the arrows and keys still wrap around)
+		local idx = c:GetAttribute("idx")
+		local nidx = up and (idx - 1) or (idx + 1)
+		if nidx < 1 or nidx > r:GetAttribute("count") then return end
+		r:RunAttribute("gopage", "page" .. nidx)
 	]])
-
 	-- Target of the "/click ActionWheelsClose" line every slice's macro ends with. A secure macro may
 	-- /click a secure handler in combat, which is how a slice closes the wheel after it ran.
 	closeBtn = CreateFrame("Button", "ActionWheelsClose", UIParent, "SecureHandlerClickTemplate")
@@ -648,6 +650,13 @@ local function Build()
 	end)
 	root:SetScript("OnShow", function() AW.RefreshStates() end)
 	root:SetScript("OnHide", function()
+		-- save the wheel that was showing (read-only access to the secure frame's attribute)
+		local cur = root:GetAttribute("last")
+		local k = type(cur) == "string" and tonumber(string.match(cur, "%d+"))
+		if k and ActionWheelsDB and ActionWheelsDB.profile then
+			local p = AW.P()
+			if p.order[k] then p.lastWheel = p.order[k] end
+		end
 		GameTooltip:Hide()
 		AW.HideSlotMenu()
 		AW.CancelSwap()
@@ -844,6 +853,7 @@ local function LayoutPage(page, id, k, count, targets)
 	page.back:SetPoint("CENTER", page, "CENTER", 0, -28 * hs)
 
 	page.wheelId = id
+	page:SetAttribute("idx", k)
 	page.name:SetText(def.name)
 	page:SetAttribute("next", pageName(k % count + 1))
 	page:SetAttribute("prev", pageName((k - 2) % count + 1))
@@ -956,6 +966,12 @@ function AW.ApplyLayout()
 	for k, id in ipairs(p.order) do
 		local cond = p.wheels[id].auto
 		if cond and AW.ValidCondition(cond) then clauses[#clauses + 1] = cond .. " " .. pageName(k) end
+	end
+	-- remember the last wheel used across sessions: restore it (when the wheel is closed)
+	root:SetAttribute("count", count)
+	if not root:IsShown() then
+		local lid = p.lastWheel
+		root:SetAttribute("last", (lid and pageOf[lid]) or home)
 	end
 	root:SetAttribute("defhome", home) -- the wheel that opens first when no auto condition applies
 	root:SetAttribute("home", home)

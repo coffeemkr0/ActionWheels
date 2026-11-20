@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.3
+- **The key now opens the last wheel you used by default**, and remembers it across `/reload` and relogging. (It was opening the wheel selected in the editor, because that was the default; an existing profile is switched once. You can still choose *The wheel I'm editing* in Settings > *The key opens*.) An auto-open condition such as `[mounted]` still wins while it holds.
+- **The mouse wheel no longer wraps around:** scrolling stops at the first and last wheel. The hub arrows and the next / previous keys still wrap.
+
 ## 0.14.2
 - **The cooldown strip can be dragged from any of its icons.** Shift + drag always moves it (even when locked); a plain drag works while it is unlocked. Hovering an icon shows the spell's tooltip and a "Shift + drag" hint.
 
