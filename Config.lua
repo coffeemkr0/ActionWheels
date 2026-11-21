@@ -587,11 +587,12 @@ local function BuildTrackerTab(t)
 		function() return TR().flash end, function(v) TR().flash = v end)
 	Check(t, "Play a sound when it is ready", 14, -260,
 		function() return TR().sound end, function(v) TR().sound = v end)
-	Check(t, "Unlock (shows a blue box to drag; Shift + drag always works)", 14, -286,
+	Check(t, "Unlock to move (shows a blue box to drag)", 14, -286,
 		function() return not TR().locked end,
 		function(v) TR().locked = not v; AW.TrackerRefresh() end)
-	Button(t, "Reset position", 300, -288, 120, function() AW.TrackerResetPosition() end)
-	Text(t, "Always show a spell: tick \"On the cooldown strip\" on its slot in the Wheels tab. Spells with long cooldowns also appear while they cool down and for a few seconds after. Items are not tracked yet.", 20, -322, "GameFontHighlightSmall", 500)
+	Button(t, "Reset position", 14, -318, 120, function() AW.TrackerResetPosition() end)
+	Text(t, "Shift + drag any icon moves it even when locked.", 142, -322, "GameFontDisableSmall")
+	Text(t, "Always show a spell: tick \"On the cooldown strip\" on its slot in the Wheels tab. Spells with long cooldowns also appear while they cool down and for a few seconds after. Items are not tracked yet.", 20, -352, "GameFontHighlightSmall", 500)
 end
 
 ---------------------------------------------------------------------------
