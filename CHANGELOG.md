@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.4
+- **Fix: error when clicking Delete (and Restore starter wheel) in the settings window.** Both buttons use a three-second "click again to confirm" timer that was never defined. It is now, and the test run fails if any `AW.*` function is called but not defined.
+
 ## 0.14.3
 - **The key now opens the last wheel you used by default**, and remembers it across `/reload` and relogging. (It was opening the wheel selected in the editor, because that was the default; an existing profile is switched once. You can still choose *The wheel I'm editing* in Settings > *The key opens*.) An auto-open condition such as `[mounted]` still wins while it holds.
 - **The mouse wheel no longer wraps around:** scrolling stops at the first and last wheel. The hub arrows and the next / previous keys still wrap.

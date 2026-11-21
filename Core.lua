@@ -34,6 +34,22 @@ local function fill(dst, src)
 end
 AW.FillDefaults = fill
 
+-- Run fn after `delay` seconds (C_Timer when the client has it, otherwise a small OnUpdate timer).
+local timers, timerFrame = {}, nil
+function AW.After(delay, fn)
+	if C_Timer and C_Timer.After then C_Timer.After(delay, fn) return end
+	timers[#timers + 1] = { at = GetTime() + delay, fn = fn }
+	if not timerFrame then
+		timerFrame = CreateFrame("Frame")
+		timerFrame:SetScript("OnUpdate", function()
+			local now = GetTime()
+			for i = #timers, 1, -1 do
+				if now >= timers[i].at then local t = table.remove(timers, i); pcall(t.fn) end
+			end
+		end)
+	end
+end
+
 function AW.InCombat()
 	if InCombatLockdown and InCombatLockdown() then return true end
 	return UnitAffectingCombat and UnitAffectingCombat("player") and true or false

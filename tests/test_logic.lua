@@ -982,6 +982,22 @@ eq(AW.P().settings.openFirst, "selected", "and a later choice is kept")
 AW.Slash("opens last")
 AW.Slash("reset")
 
+-- AW.After (used by the Delete / Restore buttons)
+local fired = 0
+C_Timer = { After = function(d, fn) fired = fired + 1; fn() end }
+local ran = false
+AW.After(3, function() ran = true end)
+eq(ran, true, "AW.After runs the function (C_Timer)"); eq(fired, 1, "through C_Timer when present")
+C_Timer = nil
+ran = false
+AW.After(3, function() ran = true end)
+eq(ran, false, "without C_Timer it waits for the OnUpdate timer")
+-- the two-click buttons work: first click arms, second acts
+AW.Slash("reset")
+AW.Slash("wheel new Doomed")
+AW.ShowConfig()
+AW.HideConfig()
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
