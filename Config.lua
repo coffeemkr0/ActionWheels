@@ -106,14 +106,30 @@ local function Button(parent, text, x, y, w, fn)
 	return b
 end
 
-local function Edit(parent, x, y, w, onEnter)
+-- A text box that saves when you leave it (Enter, Tab or clicking elsewhere) and cancels on Escape.
+-- onCommit(text) applies the change; onCancel() puts the saved text back (used by Escape).
+local function Edit(parent, x, y, w, onCommit, onCancel)
 	local e = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
 	e:SetWidth(w)
 	e:SetHeight(20)
 	e:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
 	e:SetAutoFocus(false)
-	e:SetScript("OnEscapePressed", function() e:ClearFocus() end)
-	if onEnter then e:SetScript("OnEnterPressed", function() onEnter(e:GetText()); e:ClearFocus() end) end
+	e.cancelled = false
+	e:SetScript("OnEscapePressed", function()
+		e.cancelled = true
+		e:ClearFocus()
+	end)
+	if onCommit then
+		e:SetScript("OnEnterPressed", function() e:ClearFocus() end) -- leaving the box commits it
+		e:SetScript("OnEditFocusLost", function()
+			if e.cancelled then
+				e.cancelled = false
+				if onCancel then onCancel() end
+				return
+			end
+			onCommit(e:GetText())
+		end)
+	end
 	return e
 end
 
@@ -250,7 +266,7 @@ local function BuildWheelsTab(t)
 		local _, _, def = Cur()
 		def.name = string.sub(txt, 1, 40)
 		AW.ApplyLayout(); RefreshWheels()
-	end)
+	end, function() RefreshWheels() end)
 	Button(t, "New", 296, -6, 50, function()
 		if Locked() then return end
 		local p = AW.P()
@@ -297,7 +313,7 @@ local function BuildWheelsTab(t)
 		elseif AW.ValidCondition(txt) then def.auto = txt
 		else AW.Print("Use macro conditions in brackets, e.g. [mounted] or [stance:1,combat]") end
 		AW.ApplyLayout(); RefreshWheels()
-	end)
+	end, function() RefreshWheels() end)
 	Text(t, "e.g. [mounted]  [combat]  [stance:1]", 358, -38, "GameFontDisableSmall")
 
 	-- on-screen button and action-bar macro for this wheel
@@ -688,6 +704,7 @@ local function Build()
 end
 
 AW.BuildConfig = function() Build() end
+AW.ConfigFrame = function() return frame end
 AW.SelectConfigTab = function(i) SelectTab(i) end
 
 function AW.ConfigShown() return frame and frame:IsShown() or false end

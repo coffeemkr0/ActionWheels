@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.5
+- **Renaming a wheel now sticks.** The wheel name box (and the "Opens first when" condition box) only saved when you pressed Enter; clicking away lost the change. They now save as soon as you leave the box (Enter, Tab or clicking elsewhere), and Escape cancels.
+
 ## 0.14.4
 - **Fix: error when clicking Delete (and Restore starter wheel) in the settings window.** Both buttons use a three-second "click again to confirm" timer that was never defined. It is now, and the test run fails if any `AW.*` function is called but not defined.
 
