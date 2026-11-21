@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.6
+- **Settings tab layout fixed.** The *Action bar buttons open* control overlapped the checkboxes on the right. The tab now has the five open-behaviour choices stacked on top, then a *More options* area below with nothing sharing a row.
+
 ## 0.14.5
 - **Renaming a wheel now sticks.** The wheel name box (and the "Opens first when" condition box) only saved when you pressed Enter; clicking away lost the change. They now save as soon as you leave the box (Enter, Tab or clicking elsewhere), and Escape cancels.
 

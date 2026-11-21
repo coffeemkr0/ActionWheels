@@ -488,23 +488,23 @@ local function BuildSettingsTab(t)
 		function() return S().openMode end, function(v) S().openMode = v end, 190, 140)
 	Cycle(t, "Opens at", 20, -62, { { "cursor", "The mouse cursor" }, { "center", "Screen centre" } },
 		function() return S().openAt end, function(v) S().openAt = v end, 190, 140)
-	Cycle(t, "After clicking a spell", 20, -92, { { "success", "Close when it casts" }, { "click", "Close right away" }, { "never", "Stay open" } },
+	Cycle(t, "After clicking a spell", 20, -122, { { "success", "Close when it casts" }, { "click", "Close right away" }, { "never", "Stay open" } },
 		function() return S().closeMode end, function(v) S().closeMode = v end, 190, 140)
-	Cycle(t, "The key opens", 20, -122, { { "selected", "The wheel I'm editing" }, { "last", "The last wheel I used" } },
+	Cycle(t, "The key opens", 20, -152, { { "selected", "The wheel I'm editing" }, { "last", "The last wheel I used" } },
 		function() return S().openFirst end, function(v) S().openFirst = v end, 190, 140)
-	Cycle(t, "Action bar buttons open", 20, -216, { { "center", "At the screen centre" }, { "cursor", "At the mouse cursor" } },
+	Cycle(t, "Action bar buttons open", 20, -92, { { "center", "At the screen centre" }, { "cursor", "At the mouse cursor" } },
 		function() return S().barOpenAt end, function(v) S().barOpenAt = v end, 190, 140)
-	Check(t, "Mouse wheel switches wheels", 14, -160,
+	Check(t, "Mouse wheel switches wheels", 14, -214,
 		function() return S().wheelScroll end,
 		function(v) if Locked() then return end S().wheelScroll = v; OnChanged() end)
-	Check(t, "Reverse the mouse wheel direction", 14, -186,
+	Check(t, "Reverse the mouse wheel direction", 14, -240,
 		function() return S().wheelReverse end,
 		function(v) if Locked() then return end S().wheelReverse = v; OnChanged() end)
-	Text(t, "Other", 280, -134)
-	Check(t, "Show the minimap button", 276, -158,
+	Text(t, "More options", 10, -190)
+	Check(t, "Show the minimap button", 14, -266,
 		function() return not ActionWheelsDB.minimap.hide end,
 		function(v) ActionWheelsDB.minimap.hide = not v; AW.UpdateMinimap() end)
-	Check(t, "Separate wheels for this character", 276, -186,
+	Check(t, "Separate wheels for this character", 14, -292,
 		function() return AW.UsingCharProfile() end,
 		function(v)
 			if Locked() then return end
@@ -513,22 +513,22 @@ local function BuildSettingsTab(t)
 			sel = 1
 			RefreshAll()
 		end)
-	Check(t, "Show a 'last wheel' on-screen button", 276, -216,
+	Check(t, "Show a 'last wheel' on-screen button", 276, -214,
 		function() return not ActionWheelsDB.launcher.hide end,
 		function(v)
 			if Locked() then return end
 			ActionWheelsDB.launcher.hide = not v
 			AW.PlaceLaunchers()
 		end)
-	Check(t, "Lock its position (Shift+drag moves)", 276, -242,
+	Check(t, "Lock its position (Shift+drag moves)", 276, -240,
 		function() return ActionWheelsDB.launcher.locked end,
 		function(v) ActionWheelsDB.launcher.locked = v end)
-	Button(t, "Key bindings...", 280, -276, 110, function() AW.OpenKeyBindings() end)
-	Button(t, "Last wheel -> bar", 396, -276, 140, function()
+	Button(t, "Key bindings...", 280, -274, 110, function() AW.OpenKeyBindings() end)
+	Button(t, "Last wheel -> bar", 396, -274, 140, function()
 		if Locked() then return end
 		AW.MakeActionBarMacro("last")
 	end)
-	local reset = Button(t, "Restore starter wheel", 280, -306, 160, nil)
+	local reset = Button(t, "Restore starter wheel", 280, -304, 160, nil)
 	reset:SetScript("OnClick", function()
 		if Locked() then return end
 		if not reset.armed then
