@@ -2,7 +2,7 @@
 ## Title: ActionWheels
 ## Notes: Radial, customizable action bars. Cast spells, use items, run macros and command your pet from a wheel at your cursor - in combat too.
 ## Author: coffeemkr0
-## Version: 0.14.6
+## Version: 0.14.7
 ## SavedVariables: ActionWheelsDB
 ## SavedVariablesPerCharacter: ActionWheelsCharDB
 Core.lua

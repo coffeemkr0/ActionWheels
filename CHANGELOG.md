@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.14.7
+- **Fix: an item dragged from your bags showed a question mark.** The icon was looked up by item name, which the game only resolves for items it has cached. A slot now keeps the item's ID (taken from the drag) and uses it for the icon, count, usable / range / cooldown state and tooltip. Item slots made earlier, or typed by name, get their ID looked up from your bags when the layout is applied.
+
 ## 0.14.6
 - **Settings tab layout fixed.** The *Action bar buttons open* control overlapped the checkboxes on the right. The tab now has the five open-behaviour choices stacked on top, then a *More options* area below with nothing sharing a row.
 

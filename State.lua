@@ -426,16 +426,18 @@ function AW.SlotState(slot)
 		if st.active and not AW.InCombat() then AW.LearnActiveIcon(name) end
 	elseif slot.type == "item" and slot.item then
 		local name = slot.item
-		st.cdStart, st.cdDur = try(function() return itemCooldown(itemId(name)) end)
-		local n = try(itemCount, name)
+		local iid = AW.ItemIdOf and AW.ItemIdOf(slot)
+		local ref = iid or name -- the ID is exact; the name only works for items the game has cached
+		st.cdStart, st.cdDur = try(function() return itemCooldown(iid or itemId(name)) end)
+		local n = try(itemCount, ref)
 		if n ~= nil and not secret(n) then st.count = n end
 		local usable, noMana = true, false
-		if IsUsableItem then usable, noMana = try(IsUsableItem, name) end
+		if IsUsableItem then usable, noMana = try(IsUsableItem, ref) end
 		if not secret(usable) and not secret(noMana) then
 			if st.count and st.count <= 0 then usable = false end
 			st.usable, st.noMana = usable and true or false, noMana and true or false
 		end
-		st.inRange = try(itemRange, name)
+		st.inRange = try(itemRange, ref)
 	end
 	-- cooldown: secret numbers are passed through untouched; plain ones drop the global cooldown
 	if st.cdDur ~= nil or st.cdStart ~= nil then

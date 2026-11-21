@@ -283,7 +283,7 @@ function AW.ShowSlotTooltip(b)
 		local id = AW.SpellIdOf and AW.SpellIdOf(spec.spell)
 		if id and pcall(GameTooltip.SetSpellByID, GameTooltip, id) then shown = TooltipHasText() end
 	elseif spec.type == "item" then
-		local id = GetItemInfoInstant and (GetItemInfoInstant(spec.item))
+		local id = AW.ItemIdOf(spec) or (GetItemInfoInstant and (GetItemInfoInstant(spec.item)))
 		if id and pcall(GameTooltip.SetItemByID, GameTooltip, id) then shown = TooltipHasText() end
 	end
 	if not shown then
@@ -924,6 +924,7 @@ function AW.ApplyLayout()
 		return false
 	end
 	AW.pendingApply = false
+	AW.ResolveItemIds() -- item slots keep the item's ID (exact) instead of relying on the name
 	local p = AW.P()
 	local S = p.settings
 	local count = #p.order

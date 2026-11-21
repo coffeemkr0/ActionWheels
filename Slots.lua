@@ -168,6 +168,74 @@ function AW.MacroTooltipSlot(macrotext)
 	return { type = "item", item = name }
 end
 
+---------------------------------------------------------------------------
+-- Items: found by ID. A name only resolves reliably for items the game has cached, so a slot keeps
+-- the item's ID (from the drag, or looked up from your bags) and everything uses that.
+---------------------------------------------------------------------------
+local function itemIdFromLink(link)
+	if type(link) ~= "string" then return nil end
+	return tonumber(string.match(link, "item:(%d+)"))
+end
+
+local function bagItemId(name)
+	local getN = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
+	local getLink = (C_Container and C_Container.GetContainerItemLink) or GetContainerItemLink
+	if not (getN and getLink) then return nil end
+	for bag = 0, (NUM_BAG_SLOTS or 4) + 1 do
+		local n = getN(bag)
+		for slot = 1, (type(n) == "number" and n or 0) do
+			local link = getLink(bag, slot)
+			if link and string.match(link, "%[(.-)%]") == name then return itemIdFromLink(link) end
+		end
+	end
+end
+
+-- Item ID for a name (nil when the game can't say yet).
+function AW.ResolveItemId(name)
+	if not name then return nil end
+	local id
+	if C_Item and C_Item.GetItemInfoInstant then id = (C_Item.GetItemInfoInstant(name)) end
+	if not id and GetItemInfoInstant then id = (GetItemInfoInstant(name)) end
+	if not id and GetItemInfo then id = itemIdFromLink(select(2, GetItemInfo(name))) end
+	if not id then id = bagItemId(name) end
+	return id
+end
+
+-- The item ID of an item slot; looks it up once and remembers it on the slot.
+function AW.ItemIdOf(slot)
+	if not (slot and slot.type == "item") then return nil end
+	if slot.itemID then return slot.itemID end
+	local id = AW.ResolveItemId(slot.item)
+	if id then slot.itemID = id end
+	return id
+end
+
+function AW.ItemIcon(id)
+	if not id then return nil end
+	if C_Item and C_Item.GetItemIconByID then
+		local t = C_Item.GetItemIconByID(id)
+		if t then return t end
+	end
+	if GetItemIcon then
+		local t = GetItemIcon(id)
+		if t then return t end
+	end
+	if GetItemInfoInstant then
+		local _, _, _, _, icon = GetItemInfoInstant(id)
+		return icon
+	end
+end
+
+-- Fill in missing item IDs on every wheel (called out of combat when the layout is applied).
+function AW.ResolveItemIds()
+	if not (ActionWheelsDB and ActionWheelsDB.profile) then return end
+	for _, w in pairs(AW.P().wheels) do
+		for _, slot in pairs(w.items) do
+			if slot.type == "item" and not slot.itemID then AW.ItemIdOf(slot) end
+		end
+	end
+end
+
 -- Icon to show: explicit slot.icon, else the spell/item/pet-command icon, else a question mark.
 local QUESTION = "Interface\\Icons\\INV_Misc_QuestionMark"
 function AW.SlotIcon(slot)
@@ -197,7 +265,8 @@ function AW.SlotIcon(slot)
 			elseif GetSpellTexture then tex = GetSpellTexture(slot.spell) end
 		end
 	elseif slot.type == "item" then
-		if GetItemInfoInstant then
+		tex = AW.ItemIcon(AW.ItemIdOf(slot))
+		if not tex and GetItemInfoInstant then
 			local _, _, _, _, icon = GetItemInfoInstant(slot.item)
 			tex = icon
 		end
@@ -250,7 +319,7 @@ function AW.SlotFromCursor()
 		if GetItemInfo then name = (GetItemInfo(a)) end
 		if not name and type(b) == "string" then name = string.match(b, "%[(.-)%]") end
 		if not name then return nil, "couldn't read that item (try again in a moment)" end
-		return { type = "item", item = name }
+		return { type = "item", item = name, itemID = (type(a) == "number") and a or nil }
 	elseif kind == "macro" then
 		local name, icon, body = GetMacroInfo(a)
 		if not body then return nil, "couldn't read that macro" end

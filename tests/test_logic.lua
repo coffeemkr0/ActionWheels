@@ -1027,6 +1027,45 @@ eq(cur.auto, nil, "emptying it clears the condition")
 AW.HideConfig()
 AW.Slash("reset")
 
+-- items are found by ID
+AW.Slash("reset")
+GetCursorInfo = function() return "item", 1251, "|cffffffff|Hitem:1251::::::::|h[Linen Bandage]|h|r" end
+GetItemInfo = function(id) return nil end
+local dragged = AW.SlotFromCursor()
+eq(dragged.item, "Linen Bandage", "name taken from the link"); eq(dragged.itemID, 1251, "the ID from the drag is kept")
+GetCursorInfo = function() return nil end
+-- icon by ID
+local QMARK = "Interface\\Icons\\INV_Misc_QuestionMark"
+C_Item = { GetItemIconByID = function(id) if id == 1251 then return 133685 end end }
+eq(AW.SlotIcon({ type = "item", item = "Linen Bandage", itemID = 1251 }), 133685, "the icon comes from the item ID")
+eq(AW.SlotIcon({ type = "item", item = "Heavy Linen Bandage" }), QMARK, "a name nothing can resolve shows the question mark")
+-- a name-only slot is resolved from the bags
+local bagLinks = { [0] = { [3] = "|cffffffff|Hitem:2581::::::::|h[Heavy Linen Bandage]|h|r" } }
+C_Container = {
+	GetContainerNumSlots = function(bag) return bagLinks[bag] and 4 or 0 end,
+	GetContainerItemLink = function(bag, slot) return bagLinks[bag] and bagLinks[bag][slot] end,
+}
+C_Item.GetItemIconByID = function(id) if id == 2581 then return 133686 end if id == 1251 then return 133685 end end
+local bandage = { type = "item", item = "Heavy Linen Bandage" }
+eq(AW.SlotIcon(bandage), 133686, "a name-only item slot finds its icon through the bags")
+eq(bandage.itemID, 2581, "and remembers the ID")
+-- resolved for every slot when the layout is applied
+AW.P().wheels.main.items[2] = { type = "item", item = "Heavy Linen Bandage" }
+AW.ApplyLayout()
+eq(AW.P().wheels.main.items[2].itemID, 2581, "ApplyLayout fills in missing item IDs")
+-- state uses the ID (count, usable, range, cooldown)
+local seen = {}
+GetItemCount = function(ref) seen.count = ref; return 5 end
+IsUsableItem = function(ref) seen.usable = ref; return true, false end
+GetItemCooldown = function(id) seen.cd = id; return 0, 0, 1 end
+local ist = AW.SlotState({ type = "item", item = "Heavy Linen Bandage", itemID = 2581 })
+eq(seen.count, 2581, "count by ID"); eq(seen.usable, 2581, "usable by ID"); eq(seen.cd, 2581, "cooldown by ID"); eq(ist.count, 5, "count shown")
+GetItemCount, IsUsableItem, GetItemCooldown, GetItemInfo, C_Item, C_Container = nil, nil, nil, nil, nil, nil
+-- the ID is not part of an export (it is looked up locally)
+local iimp = AW.PreviewImport(AW.Serialize({ v = 1, wheels = { { name = "I", slots = 4, items = { { type = "item", item = "Heavy Linen Bandage", itemID = 2581 } } } } }))
+eq(iimp.wheels[1].items[1].item, "Heavy Linen Bandage", "item name imported"); eq(iimp.wheels[1].items[1].itemID, nil, "item ID is not imported")
+AW.Slash("reset")
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")
