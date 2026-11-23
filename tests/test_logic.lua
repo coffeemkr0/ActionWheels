@@ -1066,6 +1066,16 @@ local iimp = AW.PreviewImport(AW.Serialize({ v = 1, wheels = { { name = "I", slo
 eq(iimp.wheels[1].items[1].item, "Heavy Linen Bandage", "item name imported"); eq(iimp.wheels[1].items[1].itemID, nil, "item ID is not imported")
 AW.Slash("reset")
 
+-- stacks: an item slot is about the item, never about one stack or bag slot
+local stackSlot = { type = "item", item = "Heavy Linen Bandage", itemID = 2581 }
+local stackAttrs = AW.SecureAttributes(stackSlot, nil, "success")
+eq(stackAttrs.macrotext, "/use Heavy Linen Bandage\n/click ActionWheelsClose", "the slot uses the item by name, so the game picks whichever stack you have")
+eq(string.find(stackAttrs.macrotext, "%d+ %d+"), nil, "and it never names a bag or bag slot")
+local countCalls = {}
+GetItemCount = function(ref) countCalls[#countCalls + 1] = ref; return 25 end -- the game adds up every stack
+eq(AW.SlotState(stackSlot).count, 25, "the count shown is the total across all stacks")
+GetItemCount = nil
+
 -- the refresh loop runs on shown pages without errors
 AW.Slash("reset")
 AW.Slash("set 1 spell Aimed Shot")

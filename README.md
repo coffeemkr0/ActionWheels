@@ -46,6 +46,7 @@ A macro slot whose text starts with `#showtooltip Aimed Shot` (or just `#showtoo
 ## Setting up slots
 Open the editor (`/aw` or the minimap button), **Wheels** tab:
 - **Drag a spell** from your spellbook, an **item** from your bags or a **macro** onto a slot in the ring. This also works on the real wheel while it is open.
+- An item slot is about the item, not one stack: it uses whichever stack of that item is in your bags, shows the **total** count across all stacks, and keeps working when one stack runs out.
 - Or click a slot and fill in the form: type (Spell / Item / Macro / Pet / Wheel), value, optional label and icon.
 - Use **New / Delete / Copy wheel**, **Move <  >** (reorders wheels), the `<` `>` picker and the `-` `+` buttons to manage wheels and their size (4 to 12 slots, up to 8 wheels). Reordering changes the paging order and the numbers in `/click ActionWheelsOpen2` macros.
 - Each slot also has a **Border colour** and **Swap <  >** buttons (swap with the previous / next slot).
