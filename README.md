@@ -1,15 +1,23 @@
 # ActionWheels
 
+[![Latest release](https://img.shields.io/github/v/release/coffeemkr0/ActionWheels?label=latest%20release&sort=semver&cacheSeconds=300)](https://github.com/coffeemkr0/ActionWheels/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/coffeemkr0/ActionWheels/total?label=downloads&cacheSeconds=300)](https://github.com/coffeemkr0/ActionWheels/releases)
 [![Tests](https://github.com/coffeemkr0/ActionWheels/actions/workflows/ci.yml/badge.svg)](https://github.com/coffeemkr0/ActionWheels/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Radial, customizable action bars for WoW Classic-era clients (Interface 16001).** Press a key and a wheel of actions appears at your cursor. Click a slice to cast a spell, use an item, run a macro, command your pet or open another wheel. It works in combat.
 
-> **Status: 0.3.0 (feature complete, not yet verified in the game client).** The logic is covered by tests, but the secure-frame behaviour has to be confirmed in-game. Please report what you see.
+| | |
+|---|---|
+| **Download** | [**Latest release**](https://github.com/coffeemkr0/ActionWheels/releases/latest) &middot; [All releases](https://github.com/coffeemkr0/ActionWheels/releases) |
+| **What changed** | [Changelog](CHANGELOG.md) |
+| **Need help?** | [Troubleshooting](#troubleshooting) &middot; [Report a problem](https://github.com/coffeemkr0/ActionWheels/issues) |
+
+> **1.0.0, the first release.** Tested in the game on a Classic-era client. If something misbehaves, `/aw debug` and the [troubleshooting table](#troubleshooting) are the place to start, and an [issue](https://github.com/coffeemkr0/ActionWheels/issues) with what it prints helps a lot.
 
 ## Install
-1. Copy the `ActionWheels` folder into `Interface/AddOns/` (the folder name must be exactly `ActionWheels`).
-2. Start the game. Press **Esc > Key Bindings > AddOns > ActionWheels** and bind **Action wheel (open / hold)**. (`/aw keys` opens the key bindings.)
+1. Download the latest **ActionWheels-x.y.z.zip** from the [latest release](https://github.com/coffeemkr0/ActionWheels/releases/latest) and unzip it. Copy the whole `ActionWheels` folder into `Interface/AddOns/` (the folder name must be exactly `ActionWheels`, with `ActionWheels.toc` directly inside it).
+2. Start the game (new files and icons only load on a full restart, so don't rely on `/reload` for a first install). Press **Esc > Key Bindings > AddOns > ActionWheels** and bind **Action wheel (open / hold)**. (`/aw keys` opens the key bindings.)
 3. Type `/aw` (or click the minimap button) to open the editor.
 
 ## Using the wheel

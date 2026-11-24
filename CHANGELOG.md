@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.0
+**The first release.** Radial, customizable action bars: press a key and a wheel of actions opens at your cursor; click a slice to cast a spell, use an item, run a macro, command your pet, or open another wheel. It works in combat.
+
+- **Slots:** spells, items (found by ID, so any stack in your bags works and counts add up), macros (with `#showtooltip`), pet commands and sub-wheels. Drag spells, items and macros onto a slot, or fill them in with the editor or `/aw set`.
+- **Wheels:** 4 to 12 slots, up to 8 wheels, paging with arrows, keys or the mouse wheel (which stops at the first and last wheel). Reorder, copy, rename; per-slot border colours; share wheels as text; optional separate wheels per character.
+- **Live slices:** cooldown swirl (also in combat), charges and item counts, grey / blue / red for unusable / no mana / out of range, a gold highlight and the active icon for an active Aspect, tooltips, click feedback.
+- **Opening it:** toggle, hold, or **Auto** (hold in combat, press-to-open out of combat) on one key; open at the cursor or screen centre; the key can open the last wheel you used. Open it with the mouse from an on-screen button (the last wheel, or one per wheel) or from an action bar macro.
+- **Cooldown strip:** a small on-screen row of spell cooldowns, visible with the wheel closed, with a ready flash and sound. Pick spells by hand, or let long cooldowns appear automatically.
+- **Editing:** a settings window (Wheels, Settings, Look, Tracker, Share), right-click a slice to edit or swap it, minimap button. Editing is locked in combat.
+- Everything above also has `/aw` slash commands (`/aw` for the list) and is covered by an automatic test suite.
+
+Earlier development versions are listed below.
+
 ## 0.14.7
 - **Fix: an item dragged from your bags showed a question mark.** The icon was looked up by item name, which the game only resolves for items it has cached. A slot now keeps the item's ID (taken from the drag) and uses it for the icon, count, usable / range / cooldown state and tooltip. Item slots made earlier, or typed by name, get their ID looked up from your bags when the layout is applied.
 
