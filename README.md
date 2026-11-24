@@ -98,4 +98,4 @@ pip install lupa
 python tests/run_tests.py
 scripts/package.sh
 ```
-Releases: push a `v*` tag and the workflow attaches `ActionWheels-<version>.zip`.
+**Releasing:** bump `## Version:` in `ActionWheels.toc`, add a `## <version>` section to `CHANGELOG.md`, and push to `main`. The *Auto release* workflow runs the tests, builds `ActionWheels-<version>.zip`, creates the `v<version>` tag and publishes the release with that changelog section as the notes. It only acts when the version line changes, and never touches an existing tag. To publish the current version by hand: Actions > *Auto release* > *Run workflow*. (Pushing a `v*` tag yourself still works: the *Release* workflow attaches the zip.)
